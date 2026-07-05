@@ -125,13 +125,6 @@
         .m-val { font-size: 18px; font-weight: 700; }
         .m-score-tag { background: rgba(59,130,246,0.15); color: var(--brand-cyan); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
 
-        /* 算法管线 */
-        .pipeline { display: flex; justify-content: space-between; align-items: center; height: 100%; padding: 0 10px; }
-        .pipe-node { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 2; }
-        .pipe-dot { width: 14px; height: 14px; background: var(--status-green); border-radius: 50%; box-shadow: 0 0 12px var(--status-green); border: 2px solid var(--bg-base); }
-        .pipe-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); text-align: center; max-width: 60px; line-height: 1.2;}
-        .pipe-line { flex-grow: 1; height: 2px; background: rgba(16, 185, 129, 0.3); margin-top: -24px; z-index: 1; }
-
         /* AI 决策引擎 */
         .ai-box { display: flex; flex-direction: column; height: 100%; }
         .ai-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
@@ -251,22 +244,11 @@
             </div>
         </div>
 
+        <!-- 修改区域：将静态算法管线替换为实时摄像头画面 -->
         <div class="panel">
-            <div class="panel-title">Algorithm Pipeline Status</div>
-            <div class="pipeline">
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">Camera</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">MediaPipe</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">Face Mesh</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">Eye Lmk</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">EAR Calc</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot"></div><div class="pipe-label">Scoring</div></div>
-                <div class="pipe-line"></div>
-                <div class="pipe-node"><div class="pipe-dot" id="pipe-final"></div><div class="pipe-label">Decision</div></div>
+            <div class="panel-title">Live Camera Feed</div>
+            <div style="flex-grow: 1; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
+                <img id="videoElement" style="max-width: 100%; max-height: 100%; object-fit: contain;" alt="Waiting for Video Stream..." />
             </div>
         </div>
 
@@ -343,6 +325,15 @@
 
         window.updateDashboard = function(data) {
             document.getElementById('json-code').textContent = JSON.stringify(data, null, 2);
+            
+            // 核心修改：渲染视频流帧
+            if (data.frame) {
+                document.getElementById('videoElement').src = "data:image/jpeg;base64," + data.frame;
+            }
+
+            // 安全检查，如果没有 focus_score 数据就跳过更新分数
+            if (data.focus_score === undefined) return;
+
             const colorVar = getColorHex(data.focus_score);
 
             // 更新仪表盘
@@ -352,20 +343,32 @@
             document.getElementById('gauge-path').style.stroke = colorVar;
 
             // 更新特征条
-            document.getElementById('f-blink-val').innerText = data.blink_score;
-            document.getElementById('f-blink-bar').style.width = (data.blink_score / 50 * 100) + '%';
-            document.getElementById('f-dur-val').innerText = data.duration_score;
-            document.getElementById('f-dur-bar').style.width = (data.duration_score / 30 * 100) + '%';
-            document.getElementById('f-pupil-val').innerText = data.pupil_score;
-            document.getElementById('f-pupil-bar').style.width = (data.pupil_score / 20 * 100) + '%';
+            if (data.blink_score !== undefined) {
+                document.getElementById('f-blink-val').innerText = data.blink_score;
+                document.getElementById('f-blink-bar').style.width = (data.blink_score / 50 * 100) + '%';
+            }
+            if (data.duration_score !== undefined) {
+                document.getElementById('f-dur-val').innerText = data.duration_score;
+                document.getElementById('f-dur-bar').style.width = (data.duration_score / 30 * 100) + '%';
+            }
+            if (data.pupil_score !== undefined) {
+                document.getElementById('f-pupil-val').innerText = data.pupil_score;
+                document.getElementById('f-pupil-bar').style.width = (data.pupil_score / 20 * 100) + '%';
+            }
 
             // 更新数字指标
-            document.getElementById('m-bf-val').innerText = data.blink_frequency;
-            document.getElementById('m-bf-score').innerText = `${data.blink_score} / 50`;
-            document.getElementById('m-bd-val').innerText = data.blink_duration;
-            document.getElementById('m-bd-score').innerText = `${data.duration_score} / 30`;
-            document.getElementById('m-pd-val').innerText = data.pupil_diameter.toFixed(1);
-            document.getElementById('m-pd-score').innerText = `${data.pupil_score} / 20`;
+            if (data.blink_frequency !== undefined) {
+                document.getElementById('m-bf-val').innerText = data.blink_frequency;
+                document.getElementById('m-bf-score').innerText = `${data.blink_score} / 50`;
+            }
+            if (data.blink_duration !== undefined) {
+                document.getElementById('m-bd-val').innerText = data.blink_duration;
+                document.getElementById('m-bd-score').innerText = `${data.duration_score} / 30`;
+            }
+            if (data.pupil_diameter !== undefined) {
+                document.getElementById('m-pd-val').innerText = Number(data.pupil_diameter).toFixed(1);
+                document.getElementById('m-pd-score').innerText = `${data.pupil_score} / 20`;
+            }
 
             // 更新图表
             const chartData = trendChart.data.datasets[0].data;
@@ -375,19 +378,19 @@
             trendChart.update();
 
             // 更新 AI 决策
-            document.getElementById('ai-rec').innerText = data.status;
-            document.getElementById('ai-rec').style.color = colorVar;
-            document.getElementById('pipe-final').style.background = colorVar;
-            document.getElementById('pipe-final').style.boxShadow = `0 0 15px ${colorVar}`;
+            if (data.status) {
+                document.getElementById('ai-rec').innerText = data.status;
+                document.getElementById('ai-rec').style.color = colorVar;
 
-            const reasonList = document.getElementById('ai-reason-list');
-            if (data.status === "Continue Learning") {
-                reasonList.innerHTML = `<li style="color:#10B981">✓ All visual metrics optimal</li>`;
-            } else {
-                let r = "";
-                if(data.blink_frequency > 10) r += `<li style="color:#EF4444">✕ High blink frequency detected</li>`;
-                if(data.blink_duration > 250) r += `<li style="color:#EF4444">✕ Prolonged eye closure (micro-sleep)</li>`;
-                reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ Mild cognitive fatigue features</li>`;
+                const reasonList = document.getElementById('ai-reason-list');
+                if (data.status === "Continue Learning" || data.status === "有效专注") {
+                    reasonList.innerHTML = `<li style="color:#10B981">✓ All visual metrics optimal</li>`;
+                } else {
+                    let r = "";
+                    if(data.blink_frequency > 10) r += `<li style="color:#EF4444">✕ High blink frequency detected</li>`;
+                    if(data.blink_duration > 250) r += `<li style="color:#EF4444">✕ Prolonged eye closure (micro-sleep)</li>`;
+                    reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ Mild cognitive fatigue features</li>`;
+                }
             }
         };
 
