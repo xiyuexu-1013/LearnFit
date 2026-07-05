@@ -3,45 +3,41 @@ import websockets
 import json
 
 class WSServer:
-    def __init__(self, host="localhost", port=8765):
+    def __init__(self, host='localhost', port=8765):
         self.host = host
         self.port = port
+        self.clients = set()
         self.current_data = {}
-        self.command_queue = [] # 指令队列，接收前端的控制命令
+        # 核心修复：新增指令队列，防止 main.py 报错
+        self.command_queue = [] 
 
     def update_data(self, data):
         self.current_data = data
 
-    async def _handler(self, websocket):
-        print("🟢 Web Dashboard Connected!")
-        
-        # 异步任务 1：发送数据给前端（带防崩保护）
-        async def send_data():
-            try:
-                while True:
-                    if self.current_data:
-                        await websocket.send(json.dumps(self.current_data))
-                    await asyncio.sleep(0.05) # 锁定最高 20 FPS 下发，防止网络阻塞
-            except websockets.exceptions.ConnectionClosed:
-                print("🔴 Dashboard Disconnected (Send Tunnel).")
-            except Exception as e:
-                print(f"⚠️ WS Send Error: {e}")
-
-        # 异步任务 2：接收前端指令（如：开始记录 CSV）
-        async def receive_data():
-            try:
-                async for message in websocket:
+    async def handler(self, websocket, path):
+        self.clients.add(websocket)
+        try:
+            while True:
+                # 1. 尝试接收前端发来的指令 (带超时，不阻塞发送)
+                try:
+                    message = await asyncio.wait_for(websocket.recv(), timeout=0.01)
                     data = json.loads(message)
-                    self.command_queue.append(data)
-            except websockets.exceptions.ConnectionClosed:
-                print("🔴 Dashboard Disconnected (Receive Tunnel).")
-            except Exception as e:
-                print(f"⚠️ WS Receive Error: {e}")
-
-        # 并发执行收发任务
-        await asyncio.gather(send_data(), receive_data())
+                    if "action" in data:
+                        self.command_queue.append(data)
+                except asyncio.TimeoutError:
+                    pass
+                
+                # 2. 将后端的画面和分数推流给前端
+                if self.current_data:
+                    await websocket.send(json.dumps(self.current_data))
+                
+                await asyncio.sleep(0.03) # 控制网络发送频率
+        except websockets.exceptions.ConnectionClosed:
+            pass
+        finally:
+            self.clients.remove(websocket)
 
     async def start(self):
-        print(f"🚀 Starting WebSocket server on ws://{self.host}:{self.port} ...")
-        async with websockets.serve(self._handler, self.host, self.port):
-            await asyncio.Future()
+        print(f"🚀 WebSocket server started on ws://{self.host}:{self.port}")
+        async with websockets.serve(self.handler, self.host, self.port):
+            await asyncio.Future()  # 持续运行
