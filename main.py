@@ -3,6 +3,7 @@ import threading
 import asyncio
 import time
 import csv
+import base64 # 新增：用于图像转码发送给前端
 from datetime import datetime
 
 from backend.camera import Camera
@@ -14,7 +15,7 @@ from backend.fatigue import FatigueDetector
 from backend.attention import AttentionEngine
 from backend.websocket_server import WSServer
 
-# 全局实验状态变量
+# 全局实验状态变量[cite: 1]
 is_recording = False
 csv_file = None
 csv_writer = None
@@ -41,7 +42,7 @@ def process_commands(ws_server):
 
 def run_vision_pipeline(ws_server):
     global is_recording, csv_writer
-    cam = Camera()
+    cam = Camera(camera_index=0) # 核心修改 1：强制绑定电脑自带摄像头 (通常 index 为 0)
     detector = FaceDetector()
     blink_tracker = BlinkDetector()
     pose_estimator = HeadPoseEstimator()
@@ -50,7 +51,7 @@ def run_vision_pipeline(ws_server):
     try:
         while True:
             start_time = time.time()
-            process_commands(ws_server) # 检查前端指令
+            process_commands(ws_server) # 检查前端指令[cite: 1]
 
             frame = cam.get_frame()
             if frame is None:
@@ -58,13 +59,16 @@ def run_vision_pipeline(ws_server):
                 
             h, w = frame.shape[:2]
             
-            # 全局防崩机制：隔离算法层的任何异常
+            # 初始化 payload，确保即使没有检测到人脸也能把画面传过去
+            payload = {"focus_score": 0, "status": "Awaiting Face"}
+            
+            # 全局防崩机制：隔离算法层的任何异常[cite: 1]
             try:
                 landmarks = detector.process(frame)
                 
                 if landmarks:
                     ear = EyeFeatures.calculate_ear(landmarks, w, h)
-                    # 防止 EAR 极值引发的数学崩塌
+                    # 防止 EAR 极值引发的数学崩塌[cite: 1]
                     if ear <= 0.01: ear = 0.01 
                     
                     mar = FatigueDetector.calculate_mar(landmarks, w, h)
@@ -77,7 +81,7 @@ def run_vision_pipeline(ws_server):
                         blink_freq, blink_dur, simulated_pupil, mar, pitch, yaw
                     )
                     
-                    payload = {
+                    payload.update({
                         "focus_score": total_score,
                         "blink_score": b_sc,
                         "duration_score": d_sc,
@@ -88,27 +92,29 @@ def run_vision_pipeline(ws_server):
                         "threshold": 35,
                         "status": status,
                         "mode": "real"
-                    }
-                    ws_server.update_data(payload)
+                    })
 
-                    # 记录实验数据
+                    # 记录实验数据[cite: 1]
                     if is_recording and csv_writer:
                         timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
                         csv_writer.writerow([timestamp, total_score, blink_freq, blink_dur, round(simulated_pupil, 1), status])
 
-                    # 渲染画面
-                    cv2.putText(frame, f"Focus: {total_score} | REC: {'ON' if is_recording else 'OFF'}", 
-                                (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255) if is_recording else (0, 255, 0), 2)
+                    # 核心修改 2：在画面上直接绘制出 EAR 值，让前端观众/评委直观看到算法依据
+                    cv2.putText(frame, f"Focus: {total_score} | EAR: {ear:.2f}", 
+                                (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                    if is_recording:
+                        cv2.putText(frame, "REC: ON", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
             except Exception as e:
                 print(f"⚠️ Pipeline 异常已拦截跳过: {e}")
 
-           #cv2.waitKey(1)
+            # 核心修改 3：压缩画面流并转为 Base64，准备发给 Dashboard
+            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 40])
+            payload["frame"] = base64.b64encode(buffer).decode('utf-8')
             
-            # 安全退出机制
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            # 推送所有数据和视频帧给前端
+            ws_server.update_data(payload)
 
-            # 帧率控制 (锁定最高约 30 FPS，释放 CPU 性能)
+            # 彻底干掉 cv2.waitKey 避免 Mac 图形界面冲突，纯靠 sleep 控制帧率
             elapsed = time.time() - start_time
             sleep_time = max(0, (1.0 / 30) - elapsed)
             time.sleep(sleep_time)
