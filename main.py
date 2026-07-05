@@ -102,7 +102,7 @@ def run_vision_pipeline(ws_server):
             except Exception as e:
                 print(f"⚠️ Pipeline 异常已拦截跳过: {e}")
 
-           cv2.waitKey(1)
+           #cv2.waitKey(1)
             
             # 安全退出机制
             if cv2.waitKey(1) & 0xFF == ord('q'):
