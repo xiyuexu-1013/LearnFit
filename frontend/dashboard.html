@@ -40,13 +40,11 @@
                 radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
         }
 
-        /* 旋转动画 (用于断线遮罩) */
         @keyframes spin { 
             0% { transform: rotate(0deg); } 
             100% { transform: rotate(360deg); } 
         }
 
-        /* 网格布局 */
         .dashboard {
             display: grid; 
             grid-template-columns: 300px 1fr 340px; 
@@ -73,7 +71,6 @@
             margin-bottom: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
         }
 
-        /* 顶部导航栏 */
         .header {
             grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center;
             padding: 8px 16px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--panel-border); border-radius: var(--radius);
@@ -90,7 +87,6 @@
         .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-red); transition: 0.3s; }
         .dot.green { background: var(--status-green); box-shadow: 0 0 10px var(--status-green); }
 
-        /* 仪表盘 */
         .gauge-wrapper { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
         .gauge-svg { width: 160px; height: 160px; transform: rotate(-90deg); }
         .gauge-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 12; }
@@ -102,7 +98,6 @@
         .gauge-val { font-size: 42px; font-weight: 900; line-height: 1; }
         .gauge-label { font-size: 11px; color: var(--text-muted); }
 
-        /* 特征得分条 */
         .feature-list { display: flex; flex-direction: column; gap: 14px; justify-content: center; height: 100%; }
         .f-item { display: flex; flex-direction: column; gap: 6px; }
         .f-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
@@ -110,12 +105,10 @@
         .f-fill { height: 100%; background: var(--brand-blue); border-radius: 4px; transition: 0.3s; }
         .f-score { font-family: var(--font-mono); color: var(--brand-cyan); }
 
-        /* 阈值卡片 */
         .threshold-box { text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%; }
-        .th-val { font-size: 48px; font-weight: 900; color: var(--text-main); }
-        .th-desc { margin-top: 10px; font-size: 13px; color: var(--status-red); background: rgba(239,68,68,0.1); padding: 8px; border-radius: 6px; }
+        .th-val { font-size: 48px; font-weight: 900; color: var(--text-main); transition: 0.3s; }
+        .th-desc { margin-top: 10px; font-size: 13px; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; transition: 0.3s; }
 
-        /* 眼动指标卡片 */
         .metrics-grid { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; height: 100%; }
         .metric-card {
             background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02);
@@ -125,7 +118,6 @@
         .m-val { font-size: 18px; font-weight: 700; }
         .m-score-tag { background: rgba(59,130,246,0.15); color: var(--brand-cyan); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
 
-        /* AI 决策引擎 */
         .ai-box { display: flex; flex-direction: column; height: 100%; }
         .ai-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
         .ai-action { font-size: 22px; font-weight: 800; }
@@ -142,7 +134,6 @@
             height: 100%; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); white-space: pre-wrap;
         }
 
-        /* 按钮通用样式 */
         .btn {
             border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
         }
@@ -151,9 +142,6 @@
 </head>
 <body>
 
-    <!-- ==========================================
-         断线遮罩层 (比赛防翻车核心)
-         ========================================== -->
     <div id="offline-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(11, 17, 32, 0.85); backdrop-filter: blur(8px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white;">
         <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
         <h1 style="font-family: var(--font-mono); letter-spacing: 2px;">CONNECTION LOST</h1>
@@ -173,7 +161,6 @@
                 <div class="stat-badge">⚡ FPS: <span id="sys-fps" style="color: var(--brand-cyan)">30.0</span></div>
                 <div class="stat-badge"><div class="dot" id="ws-dot"></div><span id="ws-text">Connecting...</span></div>
                 
-                <!-- 实验控制双按钮 -->
                 <button id="btn-start" class="btn" onclick="startExperiment()" style="background: var(--brand-blue); color: #fff;">
                     ▶ START EXP
                 </button>
@@ -216,12 +203,13 @@
             </div>
         </div>
 
+        <!-- 核心重构区域：动态阈值卡片 -->
         <div class="panel">
-            <div class="panel-title">Threshold Card</div>
+            <div class="panel-title">AI Personal Threshold</div>
             <div class="threshold-box">
                 <div style="font-size: 12px; color: var(--text-muted)">Optimal Focus Duration</div>
-                <div><span class="th-val" id="th-val">35</span><span style="font-size:20px; color:gray"> s</span></div>
-                <div class="th-desc">⚠️ After <span id="th-sub">35</span>s, focus decreases by 40%</div>
+                <div><span class="th-val" id="th-val">--</span><span style="font-size:20px; color:gray"> s</span></div>
+                <div class="th-desc" id="th-sub">等待测试开始</div>
             </div>
         </div>
 
@@ -238,13 +226,12 @@
                     <div class="m-score-tag" id="m-bd-score">0 / 30</div>
                 </div>
                 <div class="metric-card">
-                    <div><div class="m-title">Pupil Diameter</div><div><span class="m-val" id="m-pd-val">0.0</span> <span style="font-size:11px;color:gray">mm</span></div></div>
+                    <div><div class="m-title">Pupil Diameter (EAR)</div><div><span class="m-val" id="m-pd-val">0.0</span> <span style="font-size:11px;color:gray"></span></div></div>
                     <div class="m-score-tag" id="m-pd-score">0 / 20</div>
                 </div>
             </div>
         </div>
 
-        <!-- 修改区域：将静态算法管线替换为实时摄像头画面 -->
         <div class="panel">
             <div class="panel-title">Live Camera Feed</div>
             <div style="flex-grow: 1; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
@@ -287,16 +274,15 @@
     </div>
 
     <script>
-        // ==========================================
-        // UI 逻辑与图表初始化
-        // ==========================================
         let sessionSeconds = 0;
+        let isExperimentActive = false;
         setInterval(() => {
-            sessionSeconds++;
-            const m = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
-            const s = String(sessionSeconds % 60).padStart(2, '0');
-            document.getElementById('sys-timer').innerText = `${m}:${s}`;
-            // 模拟极微小的FPS波动以显得真实
+            if (isExperimentActive) {
+                sessionSeconds++;
+                const m = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
+                const s = String(sessionSeconds % 60).padStart(2, '0');
+                document.getElementById('sys-timer').innerText = `${m}:${s}`;
+            }
             document.getElementById('sys-fps').innerText = (29.5 + Math.random() * 1.5).toFixed(1);
         }, 1000);
 
@@ -326,15 +312,15 @@
         window.updateDashboard = function(data) {
             document.getElementById('json-code').textContent = JSON.stringify(data, null, 2);
             
-            // 核心修改：渲染视频流帧
             if (data.frame) {
                 document.getElementById('videoElement').src = "data:image/jpeg;base64," + data.frame;
             }
 
-            // 安全检查，如果没有 focus_score 数据就跳过更新分数
             if (data.focus_score === undefined) return;
 
-            const colorVar = getColorHex(data.focus_score);
+            // 引擎校准时强制绿灯
+            const isCalibrating = data.status && data.status.includes("Calibrating");
+            const colorVar = isCalibrating ? '#10B981' : getColorHex(data.focus_score);
 
             // 更新仪表盘
             document.getElementById('g-val').innerText = data.focus_score;
@@ -366,8 +352,42 @@
                 document.getElementById('m-bd-score').innerText = `${data.duration_score} / 30`;
             }
             if (data.pupil_diameter !== undefined) {
-                document.getElementById('m-pd-val').innerText = Number(data.pupil_diameter).toFixed(1);
+                document.getElementById('m-pd-val').innerText = Number(data.pupil_diameter).toFixed(2);
                 document.getElementById('m-pd-score').innerText = `${data.pupil_score} / 20`;
+            }
+
+            // 核心功能点：动态基线阈值卡片渲染
+            if (data.optimal_duration !== undefined) {
+                const thValDom = document.getElementById('th-val');
+                const thSubDom = document.getElementById('th-sub');
+
+                if (data.optimal_duration === 0) {
+                    if (isCalibrating) {
+                        thValDom.innerText = "--";
+                        thValDom.style.fontSize = "48px";
+                        thSubDom.innerText = `⏳ 正在建立专属基准线 (${data.status})`;
+                        thSubDom.style.color = "var(--status-yellow)";
+                        thSubDom.style.background = "rgba(245, 158, 11, 0.1)";
+                    } else if (data.status === "Awaiting Face" || !isExperimentActive) {
+                        thValDom.innerText = "--";
+                        thValDom.style.fontSize = "48px";
+                        thSubDom.innerText = "点击右上角 START EXP 开始测试";
+                        thSubDom.style.color = "var(--text-muted)";
+                        thSubDom.style.background = "rgba(0, 0, 0, 0.3)";
+                    } else {
+                        thValDom.innerText = "测算中";
+                        thValDom.style.fontSize = "36px";
+                        thSubDom.innerText = "🔍 AI 正在寻找您的疲劳临界点...";
+                        thSubDom.style.color = "var(--brand-cyan)";
+                        thSubDom.style.background = "rgba(6, 182, 212, 0.1)";
+                    }
+                } else {
+                    thValDom.innerText = data.optimal_duration;
+                    thValDom.style.fontSize = "48px";
+                    thSubDom.innerText = `🎯 AI判定您的极限专注能力为 ${data.optimal_duration}秒`;
+                    thSubDom.style.color = "var(--status-green)";
+                    thSubDom.style.background = "rgba(16, 185, 129, 0.1)";
+                }
             }
 
             // 更新图表
@@ -383,19 +403,22 @@
                 document.getElementById('ai-rec').style.color = colorVar;
 
                 const reasonList = document.getElementById('ai-reason-list');
-                if (data.status === "Continue Learning" || data.status === "有效专注") {
-                    reasonList.innerHTML = `<li style="color:#10B981">✓ All visual metrics optimal</li>`;
+                if (isCalibrating) {
+                    reasonList.innerHTML = `<li style="color:#F59E0B">⚙️ 正在收集个体眼动特征 (30s)</li>`;
+                } else if (data.status === "Continue Learning" || data.status === "有效专注") {
+                    reasonList.innerHTML = `<li style="color:#10B981">✓ 个体特征符合深度专注基准</li>`;
                 } else {
                     let r = "";
-                    if(data.blink_frequency > 10) r += `<li style="color:#EF4444">✕ High blink frequency detected</li>`;
-                    if(data.blink_duration > 250) r += `<li style="color:#EF4444">✕ Prolonged eye closure (micro-sleep)</li>`;
-                    reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ Mild cognitive fatigue features</li>`;
+                    if(data.blink_score < 40) r += `<li style="color:#EF4444">✕ 眨眼频率异常偏离基线</li>`;
+                    if(data.duration_score < 20) r += `<li style="color:#EF4444">✕ 眼睑闭合时长超出健康区间</li>`;
+                    if(data.pupil_score < 10) r += `<li style="color:#F59E0B">⚠ EAR 提示眼皮沉重 (微困倦)</li>`;
+                    reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ 综合得分低于专注阈值</li>`;
                 }
             }
         };
 
         // ==========================================
-        // WebSocket 核心逻辑与双向通信
+        // WebSocket 逻辑
         // ==========================================
         let ws;
         function connectWebSocket() {
@@ -403,7 +426,7 @@
             
             ws.onopen = function() {
                 console.log('🟢 Connected to Python Backend');
-                document.getElementById('offline-overlay').style.display = 'none'; // 连接成功，隐藏遮罩
+                document.getElementById('offline-overlay').style.display = 'none';
                 document.getElementById('ws-dot').classList.add('green');
                 document.getElementById('ws-text').innerText = "System Online";
             };
@@ -415,22 +438,20 @@
             
             ws.onclose = function() {
                 console.log('🔴 Disconnected from Python Backend');
-                document.getElementById('offline-overlay').style.display = 'flex'; // 断开连接，弹出遮罩保护
+                document.getElementById('offline-overlay').style.display = 'flex';
                 document.getElementById('ws-dot').classList.remove('green');
                 document.getElementById('ws-text').innerText = "Offline";
-                setTimeout(connectWebSocket, 3000); // 每 3 秒自动重连
+                setTimeout(connectWebSocket, 3000);
             };
         }
 
-        // 页面加载完毕即尝试连接
         connectWebSocket();
 
-        // ==========================================
-        // 实验 CSV 控制按钮事件
-        // ==========================================
         function startExperiment() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: "start" }));
+                isExperimentActive = true;
+                sessionSeconds = 0;
                 document.getElementById('btn-start').style.background = 'var(--status-green)';
                 document.getElementById('btn-start').innerText = '⏺ RECORDING';
                 document.getElementById('btn-stop').disabled = false;
@@ -441,6 +462,7 @@
         function stopExperiment() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ action: "stop" }));
+                isExperimentActive = false;
                 document.getElementById('btn-start').style.background = 'var(--brand-blue)';
                 document.getElementById('btn-start').innerText = '▶ START EXP';
                 document.getElementById('btn-stop').disabled = true;
