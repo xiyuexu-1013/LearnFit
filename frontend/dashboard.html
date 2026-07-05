@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LearnFit - AI-powered Personalized Focus Rhythm Detection</title>
+    <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* ==========================================
+           核心样式与变量
+           ========================================== */
         :root {
             --bg-base: #0B1120;
             --panel-bg: rgba(30, 41, 59, 0.6);
@@ -19,26 +23,49 @@
             --status-red: #EF4444;
             --radius: 12px;
             --font-mono: 'SFMono-Regular', Consolas, monospace;
-            --font-sans: 'Inter', sans-serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: var(--font-sans); background-color: var(--bg-base); color: var(--text-main);
-            height: 100vh; padding: 16px; overflow: hidden;
-            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-                              radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+            font-family: var(--font-sans); 
+            background-color: var(--bg-base); 
+            color: var(--text-main);
+            height: 100vh; 
+            padding: 16px; 
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
         }
 
+        /* 旋转动画 (用于断线遮罩) */
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        /* 网格布局 */
         .dashboard {
-            display: grid; grid-template-columns: 300px 1fr 340px; grid-template-rows: auto 220px 1fr 220px;
-            gap: 16px; height: 100%; max-width: 1920px; margin: 0 auto;
+            display: grid; 
+            grid-template-columns: 300px 1fr 340px; 
+            grid-template-rows: auto 220px 1fr 220px;
+            gap: 16px; 
+            height: 100%; 
+            max-width: 1920px; 
+            margin: 0 auto;
         }
 
         .panel {
-            background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius);
-            padding: 16px; backdrop-filter: blur(10px); display: flex; flex-direction: column; position: relative;
+            background: var(--panel-bg); 
+            border: 1px solid var(--panel-border); 
+            border-radius: var(--radius);
+            padding: 16px; 
+            backdrop-filter: blur(10px); 
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
         }
 
         .panel-title {
@@ -46,6 +73,7 @@
             margin-bottom: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
         }
 
+        /* 顶部导航栏 */
         .header {
             grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center;
             padding: 8px 16px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--panel-border); border-radius: var(--radius);
@@ -62,6 +90,7 @@
         .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-red); transition: 0.3s; }
         .dot.green { background: var(--status-green); box-shadow: 0 0 10px var(--status-green); }
 
+        /* 仪表盘 */
         .gauge-wrapper { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
         .gauge-svg { width: 160px; height: 160px; transform: rotate(-90deg); }
         .gauge-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 12; }
@@ -73,6 +102,7 @@
         .gauge-val { font-size: 42px; font-weight: 900; line-height: 1; }
         .gauge-label { font-size: 11px; color: var(--text-muted); }
 
+        /* 特征得分条 */
         .feature-list { display: flex; flex-direction: column; gap: 14px; justify-content: center; height: 100%; }
         .f-item { display: flex; flex-direction: column; gap: 6px; }
         .f-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
@@ -80,10 +110,12 @@
         .f-fill { height: 100%; background: var(--brand-blue); border-radius: 4px; transition: 0.3s; }
         .f-score { font-family: var(--font-mono); color: var(--brand-cyan); }
 
+        /* 阈值卡片 */
         .threshold-box { text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%; }
         .th-val { font-size: 48px; font-weight: 900; color: var(--text-main); }
         .th-desc { margin-top: 10px; font-size: 13px; color: var(--status-red); background: rgba(239,68,68,0.1); padding: 8px; border-radius: 6px; }
 
+        /* 眼动指标卡片 */
         .metrics-grid { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; height: 100%; }
         .metric-card {
             background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02);
@@ -93,12 +125,14 @@
         .m-val { font-size: 18px; font-weight: 700; }
         .m-score-tag { background: rgba(59,130,246,0.15); color: var(--brand-cyan); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
 
+        /* 算法管线 */
         .pipeline { display: flex; justify-content: space-between; align-items: center; height: 100%; padding: 0 10px; }
         .pipe-node { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; z-index: 2; }
         .pipe-dot { width: 14px; height: 14px; background: var(--status-green); border-radius: 50%; box-shadow: 0 0 12px var(--status-green); border: 2px solid var(--bg-base); }
         .pipe-label { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); text-align: center; max-width: 60px; line-height: 1.2;}
         .pipe-line { flex-grow: 1; height: 2px; background: rgba(16, 185, 129, 0.3); margin-top: -24px; z-index: 1; }
 
+        /* AI 决策引擎 */
         .ai-box { display: flex; flex-direction: column; height: 100%; }
         .ai-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
         .ai-action { font-size: 22px; font-weight: 800; }
@@ -114,11 +148,28 @@
             font-family: var(--font-mono); font-size: 11px; color: #A5D6FF;
             height: 100%; overflow-y: auto; border: 1px solid rgba(255,255,255,0.05); white-space: pre-wrap;
         }
+
+        /* 按钮通用样式 */
+        .btn {
+            border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
+    <!-- ==========================================
+         断线遮罩层 (比赛防翻车核心)
+         ========================================== -->
+    <div id="offline-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(11, 17, 32, 0.85); backdrop-filter: blur(8px); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; color: white;">
+        <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+        <h1 style="font-family: var(--font-mono); letter-spacing: 2px;">CONNECTION LOST</h1>
+        <p style="color: var(--text-muted); margin-top: 10px;">Waiting for Python Backend Engine to resume...</p>
+        <div class="spinner" style="margin-top: 30px; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--brand-blue); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    </div>
+
     <div class="dashboard">
+        <!-- 顶部控制栏 -->
         <div class="header">
             <div class="brand">
                 <h1>🧠 LearnFit</h1>
@@ -128,12 +179,18 @@
                 <div class="stat-badge">⏱️ Session: <span id="sys-timer" style="color: #fff">00:00</span></div>
                 <div class="stat-badge">⚡ FPS: <span id="sys-fps" style="color: var(--brand-cyan)">30.0</span></div>
                 <div class="stat-badge"><div class="dot" id="ws-dot"></div><span id="ws-text">Connecting...</span></div>
-                <button id="mode-btn" style="background: var(--status-yellow); color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold;">
-                    WAITING FOR DATA
+                
+                <!-- 实验控制双按钮 -->
+                <button id="btn-start" class="btn" onclick="startExperiment()" style="background: var(--brand-blue); color: #fff;">
+                    ▶ START EXP
+                </button>
+                <button id="btn-stop" class="btn" onclick="stopExperiment()" style="background: var(--panel-bg); color: var(--text-muted); border: 1px solid var(--panel-border);" disabled>
+                    ⏹ STOP
                 </button>
             </div>
         </div>
 
+        <!-- Row 1 -->
         <div class="panel">
             <div class="panel-title">Focus Gauge</div>
             <div class="gauge-wrapper">
@@ -175,6 +232,7 @@
             </div>
         </div>
 
+        <!-- Row 2 -->
         <div class="panel">
             <div class="panel-title">Real-time Eye Metrics</div>
             <div class="metrics-grid">
@@ -226,6 +284,7 @@
             </div>
         </div>
 
+        <!-- Row 3 -->
         <div class="panel" style="grid-column: span 2; grid-row: span 2;">
             <div class="panel-title">Multi-Dimensional Trend Chart (60s)</div>
             <div class="chart-container"><canvas id="trendChart"></canvas></div>
@@ -246,17 +305,19 @@
     </div>
 
     <script>
-        // Session Timer
+        // ==========================================
+        // UI 逻辑与图表初始化
+        // ==========================================
         let sessionSeconds = 0;
         setInterval(() => {
             sessionSeconds++;
             const m = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
             const s = String(sessionSeconds % 60).padStart(2, '0');
             document.getElementById('sys-timer').innerText = `${m}:${s}`;
+            // 模拟极微小的FPS波动以显得真实
             document.getElementById('sys-fps').innerText = (29.5 + Math.random() * 1.5).toFixed(1);
         }, 1000);
 
-        // Chart Setup
         Chart.defaults.color = '#94A3B8';
         const trendCtx = document.getElementById('trendChart').getContext('2d');
         const trendChart = new Chart(trendCtx, {
@@ -268,7 +329,7 @@
                     borderWidth: 2, pointRadius: 0, tension: 0.4
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } }, animation: {duration: 0} }
         });
 
         const expCtx = document.getElementById('expChart').getContext('2d');
@@ -284,11 +345,13 @@
             document.getElementById('json-code').textContent = JSON.stringify(data, null, 2);
             const colorVar = getColorHex(data.focus_score);
 
+            // 更新仪表盘
             document.getElementById('g-val').innerText = data.focus_score;
             document.getElementById('g-val').style.color = colorVar;
             document.getElementById('gauge-path').style.strokeDashoffset = 440 - (440 * data.focus_score) / 100;
             document.getElementById('gauge-path').style.stroke = colorVar;
 
+            // 更新特征条
             document.getElementById('f-blink-val').innerText = data.blink_score;
             document.getElementById('f-blink-bar').style.width = (data.blink_score / 50 * 100) + '%';
             document.getElementById('f-dur-val').innerText = data.duration_score;
@@ -296,6 +359,7 @@
             document.getElementById('f-pupil-val').innerText = data.pupil_score;
             document.getElementById('f-pupil-bar').style.width = (data.pupil_score / 20 * 100) + '%';
 
+            // 更新数字指标
             document.getElementById('m-bf-val').innerText = data.blink_frequency;
             document.getElementById('m-bf-score').innerText = `${data.blink_score} / 50`;
             document.getElementById('m-bd-val').innerText = data.blink_duration;
@@ -303,11 +367,14 @@
             document.getElementById('m-pd-val').innerText = data.pupil_diameter.toFixed(1);
             document.getElementById('m-pd-score').innerText = `${data.pupil_score} / 20`;
 
+            // 更新图表
             const chartData = trendChart.data.datasets[0].data;
-            chartData.push(data.focus_score); chartData.shift();
+            chartData.push(data.focus_score); 
+            chartData.shift();
             trendChart.data.datasets[0].borderColor = colorVar;
             trendChart.update();
 
+            // 更新 AI 决策
             document.getElementById('ai-rec').innerText = data.status;
             document.getElementById('ai-rec').style.color = colorVar;
             document.getElementById('pipe-final').style.background = colorVar;
@@ -315,45 +382,68 @@
 
             const reasonList = document.getElementById('ai-reason-list');
             if (data.status === "Continue Learning") {
-                reasonList.innerHTML = `<li style="color:#10B981">✓ All metrics optimal</li>`;
+                reasonList.innerHTML = `<li style="color:#10B981">✓ All visual metrics optimal</li>`;
             } else {
                 let r = "";
-                if(data.blink_frequency > 10) r += `<li style="color:#EF4444">✕ High blink frequency</li>`;
-                if(data.blink_duration > 250) r += `<li style="color:#EF4444">✕ Prolonged blink duration</li>`;
-                reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ Mild fatigue features</li>`;
+                if(data.blink_frequency > 10) r += `<li style="color:#EF4444">✕ High blink frequency detected</li>`;
+                if(data.blink_duration > 250) r += `<li style="color:#EF4444">✕ Prolonged eye closure (micro-sleep)</li>`;
+                reasonList.innerHTML = r || `<li style="color:#F59E0B">⚠ Mild cognitive fatigue features</li>`;
             }
         };
 
         // ==========================================
-        // REAL-TIME WEBSOCKET CONNECTION
+        // WebSocket 核心逻辑与双向通信
         // ==========================================
         let ws;
         function connectWebSocket() {
             ws = new WebSocket('ws://localhost:8765');
+            
             ws.onopen = function() {
                 console.log('🟢 Connected to Python Backend');
+                document.getElementById('offline-overlay').style.display = 'none'; // 连接成功，隐藏遮罩
                 document.getElementById('ws-dot').classList.add('green');
-                document.getElementById('ws-text').innerText = "Python Connected";
-                const btn = document.getElementById('mode-btn');
-                btn.innerText = "REAL MODE (LIVE)";
-                btn.style.background = "var(--status-green)";
-                btn.style.color = "#fff";
+                document.getElementById('ws-text').innerText = "System Online";
             };
+            
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 updateDashboard(data);
             };
+            
             ws.onclose = function() {
                 console.log('🔴 Disconnected from Python Backend');
+                document.getElementById('offline-overlay').style.display = 'flex'; // 断开连接，弹出遮罩保护
                 document.getElementById('ws-dot').classList.remove('green');
-                document.getElementById('ws-text').innerText = "Connection Lost";
-                const btn = document.getElementById('mode-btn');
-                btn.innerText = "WAITING FOR DATA";
-                btn.style.background = "var(--status-red)";
-                setTimeout(connectWebSocket, 3000); // 自动重连
+                document.getElementById('ws-text').innerText = "Offline";
+                setTimeout(connectWebSocket, 3000); // 每 3 秒自动重连
             };
         }
+
+        // 页面加载完毕即尝试连接
         connectWebSocket();
+
+        // ==========================================
+        // 实验 CSV 控制按钮事件
+        // ==========================================
+        function startExperiment() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "start" }));
+                document.getElementById('btn-start').style.background = 'var(--status-green)';
+                document.getElementById('btn-start').innerText = '⏺ RECORDING';
+                document.getElementById('btn-stop').disabled = false;
+                document.getElementById('btn-stop').style.color = '#fff';
+            }
+        }
+
+        function stopExperiment() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "stop" }));
+                document.getElementById('btn-start').style.background = 'var(--brand-blue)';
+                document.getElementById('btn-start').innerText = '▶ START EXP';
+                document.getElementById('btn-stop').disabled = true;
+                document.getElementById('btn-stop').style.color = 'var(--text-muted)';
+            }
+        }
     </script>
 </body>
 </html>
