@@ -8,13 +8,13 @@ class WSServer:
         self.port = port
         self.clients = set()
         self.current_data = {}
-        # 核心修复：新增指令队列，防止 main.py 报错
         self.command_queue = [] 
 
     def update_data(self, data):
         self.current_data = data
 
-    async def handler(self, websocket, path):
+    # 核心修复：去掉了 'path' 参数，完美适配最新版 websockets 库
+    async def handler(self, websocket):
         self.clients.add(websocket)
         try:
             while True:
