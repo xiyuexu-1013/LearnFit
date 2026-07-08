@@ -1,55 +1,266 @@
 # LearnFit
-# LearnFit: AI-Powered Personalized Focus Rhythm Detection
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.x-green)
+### An AI-Powered Real-Time Cognitive Attention Monitoring System for Personalized Learning Rhythm Discovery
+
+<p align="center">
+  <img src="assets/banner.png" width="900"/>
+</p>
+
+<p align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green)
 ![MediaPipe](https://img.shields.io/badge/MediaPipe-FaceMesh-orange)
-![WebSocket](https://img.shields.io/badge/WebSocket-RealTime-lightgrey)
+![WebSocket](https://img.shields.io/badge/WebSocket-Realtime-red)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-> **LearnFit** 是一个基于多模态面部特征与眼动追踪的实时专注度量化评估系统。本项目专为科创比赛与认知科学研究设计，通过消费级摄像头即可实现毫秒级的专注力波动监控与个性化学习阈值发现。
-
-##  项目背景与核心价值
-
-在传统学习场景中，由于缺乏客观的“认知投入”监测手段，学习者往往容易陷入“无效延时（硬学）”的陷阱。
-LearnFit 系统通过非接触式的计算机视觉技术，实时提取用户的眼部（EAR）、嘴部（MAR）与头部姿态（Head Pose）特征，融合认知心理学文献验证的 AHP 权重模型，为用户输出精准的 **0~100 实时专注度评分**，并发现个体的“最优专注时长阈值”。
-
-##  系统架构 (Pipeline)
-
-系统采用严密的 **前端显示分离 + 后端算法解耦** 架构：
-
-1. **视觉捕获 (Camera)**: OpenCV 实时提取 60fps 视频流。
-2. **特征解析 (Face Mesh)**: 运用 MediaPipe 提取 478 个人脸密集关键点。
-3. **指标量化 (Metrics)**: 计算 EAR (眼睛纵横比), MAR (嘴巴纵横比), 瞳孔直径估算及 3D 头部姿态。
-4. **决策引擎 (Attention Engine)**: 融合多模态特征，输出 Focus Score。
-5. **实时通信 (WebSocket)**: 异步微秒级数据下发。
-6. **全息看板 (Dashboard V3)**: 玻璃拟物态 UI，提供极致的科研数据可视化。
+</p>
 
 ---
 
-##  核心算法与评分模型 (Scoring Logic)
+# Abstract
 
-本项目的专注度算法 (Attention Score) 深度参考了 TVST 与 PMC 相关的眼动与心智游移（Mind Wandering）交叉研究文献，采用 **基准扣分制与权重融合机制**：
+Maintaining sustained attention during learning is challenging, yet most educational technologies evaluate performance only after cognitive fatigue has already occurred.
 
-*   **眨眼频率 (Blink Frequency) - 权重 50%**
-    *   *基准阈值*：≤ 10次/分钟（满分50分）
-    *   *衰减逻辑*：超过阈值后，每多1次/分扣除5分。
-*   **眨眼时长 (Blink Duration) - 权重 30%**
-    *   *基准阈值*：≤ 250ms（满分30分）
-    *   *衰减逻辑*：区分正常眨眼与微睡眠，超过 250ms 后实行阶梯扣分。
-*   **瞳孔静息直径估算 (Pupil Diameter) - 权重 20%**
-    *   *基准阈值*：≥ 3.0mm（满分20分）
-    *   *衰减逻辑*：侦测认知投入下降导致的瞳孔收缩。
-*   **多模态惩罚项 (Penalties)**
-    *   *打哈欠检测 (MAR > 0.6)*：瞬时扣除 20 分。
-    *   *注意力脱离 (Yaw > 25° / Pitch > 20°)*：头部严重偏离工作区，瞬时扣除 15 分。
+LearnFit is a real-time cognitive attention monitoring system that continuously estimates a learner's attentional state using multimodal facial behavioral signals. Instead of relying on questionnaires or wearable physiological sensors, LearnFit performs non-contact computer vision analysis through a standard webcam and provides interpretable attention scores together with personalized learning rhythm recommendations.
+
+The system integrates eye openness, blink dynamics, mouth aspect ratio, and head pose into a unified scoring framework, enabling continuous visualization of attention changes while simultaneously recording experimental data for subsequent analysis.
 
 ---
 
-##  快速启动 (Quick Start)
+# Research Motivation
 
-无需复杂的配置，跟随以下步骤在本地运行完整的 LearnFit 系统。
+Traditional study methods often encourage students to work for predetermined durations (e.g., 60–90 minutes) regardless of their actual cognitive state.
 
-### 1. 克隆代码仓库
+However,
+
+> **Cognitive fatigue develops continuously rather than discretely.**
+
+This project investigates whether facial behavioral signals can be used to estimate attention changes in real time and identify an individual's optimal learning rhythm before significant performance degradation occurs.
+
+---
+
+# Research Hypothesis
+
+We hypothesize that:
+
+> Continuous multimodal facial behavioral analysis can estimate cognitive attention levels in real time and identify personalized attention thresholds that improve learning efficiency compared with fixed-duration study strategies.
+
+---
+
+# System Architecture
+
+```
+                  Webcam
+                     │
+                     ▼
+          MediaPipe Face Mesh
+                     │
+                     ▼
+      Feature Extraction Layer
+     ├── Eye Aspect Ratio (EAR)
+     ├── Blink Frequency
+     ├── Blink Duration
+     ├── Mouth Aspect Ratio (MAR)
+     └── Head Pose Estimation
+                     │
+                     ▼
+      Attention Scoring Engine
+                     │
+                     ▼
+         WebSocket Communication
+                     │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+ Dashboard Visualization   CSV Experiment Logger
+```
+
+---
+
+# Core Features
+
+## Real-Time Computer Vision
+
+* Face landmark detection using MediaPipe Face Mesh
+* Eye Aspect Ratio (EAR) estimation
+* Blink frequency monitoring
+* Blink duration analysis
+* Mouth Aspect Ratio (MAR) calculation
+* Head pose estimation (Pitch / Yaw / Roll)
+
+---
+
+## Attention Scoring Engine
+
+The scoring engine combines multiple behavioral indicators into a continuous attention score.
+
+Current indicators include:
+
+* Eye openness
+* Blink frequency
+* Blink duration
+* Head movement
+* Fatigue-related facial behavior
+
+The output is mapped into interpretable cognitive states such as:
+
+* Effective Focus
+* Mild Distraction
+* Sustained Distraction
+* Recommended Break
+
+---
+
+## Real-Time Dashboard
+
+The dashboard provides:
+
+* Live attention score
+* Historical attention trend
+* AI recommendation
+* Experiment status
+* Comparative learning visualization
+
+Designed specifically for projection during research demonstrations and science competitions.
+
+---
+
+## Experiment Recording
+
+LearnFit supports automated experiment recording.
+
+Each session exports:
+
+* Timestamp
+* Attention Score
+* Blink Frequency
+* Blink Duration
+* Eye Openness (EAR)
+* Cognitive Status
+
+The exported CSV files can be directly analyzed using Python or spreadsheet software.
+
+---
+
+# Repository Structure
+
+```
+LearnFit/
+
+├── backend/
+│   ├── attention.py
+│   ├── blink.py
+│   ├── camera.py
+│   ├── eye.py
+│   ├── face_detector.py
+│   ├── fatigue.py
+│   ├── head_pose.py
+│   └── websocket_server.py
+│
+├── frontend/
+│   └── dashboard.html
+│
+├── generate_report.py
+├── main.py
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# Technology Stack
+
+| Layer                   | Technology                         |
+| ----------------------- | ---------------------------------- |
+| Programming Language    | Python                             |
+| Computer Vision         | OpenCV                             |
+| Face Landmark Detection | MediaPipe Face Mesh                |
+| Numerical Computing     | NumPy                              |
+| Communication           | WebSocket                          |
+| Visualization           | HTML + CSS + JavaScript + Chart.js |
+
+---
+
+# Experimental Workflow
+
+1. Launch the backend engine.
+2. Open the dashboard.
+3. Begin an experimental session.
+4. Perform a continuous learning task.
+5. Record facial behavioral signals.
+6. Stop the experiment.
+7. Export CSV data.
+8. Generate experimental figures.
+
+---
+
+# Example Output
+
+The system automatically records experimental sessions such as:
+
+| Timestamp | Score | Blink Frequency |  EAR | Status                |
+| --------- | ----: | --------------: | ---: | --------------------- |
+| 00:00:05  |  82.4 |               9 | 0.31 | Effective Focus       |
+| 00:00:21  |  74.6 |              11 | 0.28 | Mild Distraction      |
+| 00:00:45  |  55.8 |              16 | 0.22 | Sustained Distraction |
+
+---
+
+# Future Work
+
+Future versions of LearnFit will explore:
+
+* Personalized attention models
+* Machine learning–based scoring
+* Long-term attention prediction
+* Adaptive study scheduling
+* Cross-subject validation
+* Multimodal physiological sensing
+* Mobile deployment
+
+---
+
+# Reproducibility
+
+Install dependencies
+
 ```bash
-git clone [https://github.com/你的用户名/LearnFit_Project.git](https://github.com/你的用户名/LearnFit_Project.git)
-cd LearnFit_Project
+pip install -r requirements.txt
+```
+
+Run the backend
+
+```bash
+python main.py
+```
+
+Generate experiment reports
+
+```bash
+python generate_report.py
+```
+
+Open the dashboard in a browser to visualize the real-time monitoring system.
+
+---
+
+# Citation
+
+If you use this project in research or educational work, please cite:
+
+```
+Xu, X.
+LearnFit: An AI-Powered Real-Time Cognitive Attention Monitoring System for Personalized Learning Rhythm Discovery.
+GitHub Repository.
+```
+
+---
+
+# Author
+
+**Xiyue Xu**
+
+Independent Research Project
+
+Computer Vision · Human–Computer Interaction · Educational AI · Cognitive Computing
+
