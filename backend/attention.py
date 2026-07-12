@@ -1,5 +1,37 @@
 import time
 
+# ==========================================
+# 修复 Bug 4：引入独立的眨眼与闭眼状态机
+# 区分“快速眨眼”与“长时间闭眼(疲惫)”
+# ==========================================
+class BlinkDetector:
+    def __init__(self, ear_threshold=0.2, blink_min_frames=2, sleep_min_frames=15):
+        self.ear_threshold = ear_threshold
+        self.blink_min_frames = blink_min_frames 
+        self.sleep_min_frames = sleep_min_frames 
+        
+        self.closed_frames = 0
+        self.total_blinks = 0
+
+    def update(self, current_ear):
+        is_sleeping = False
+        
+        if current_ear < self.ear_threshold:
+            self.closed_frames += 1
+            if self.closed_frames >= self.sleep_min_frames:
+                is_sleeping = True # 持续闭眼，判定为疲惫
+        else:
+            # 只有当眼睛重新睁开时，才结算刚才的闭眼动作
+            if self.blink_min_frames <= self.closed_frames < self.sleep_min_frames:
+                self.total_blinks += 1 # 判定为一次有效眨眼
+            
+            self.closed_frames = 0 # 状态重置
+            
+        return self.total_blinks, is_sleeping
+
+# ==========================================
+# 注意力打分与贝叶斯推断引擎
+# ==========================================
 class AttentionEngine:
     def __init__(self):
         self.session_start = 0
@@ -18,28 +50,22 @@ class AttentionEngine:
             "ear": 0.30
         }
         
-        # ==========================================
         # 贝叶斯推断引擎核心变量
-        # ==========================================
-        # 先验 (Prior): 默认最优时长为 25 分钟 (1500秒)
         self.optimal_duration_sec = 1500.0 
-        
-        self.update_count = 1 # 观测轮数，用于计算置信度
-        self.minute_score_buffer = [] # 暂存最近 1 分钟的所有分数
-        self.last_update_time = 0 # 记录上一次贝叶斯更新的时间节点
+        self.update_count = 1 
+        self.minute_score_buffer = [] 
+        self.last_update_time = 0 
 
     def start_session(self):
         self.session_start = time.time()
         self.is_calibrating = True
         
-        # 清空短期缓存，但【绝不清空】贝叶斯的长期先验 (optimal_duration) 
-        # 和历史生理数据，让它越用越懂你！
+        # 清空短期缓存，但绝不清空贝叶斯的长期先验与历史生理数据
         self.score_window.clear()
         self.minute_score_buffer.clear()
         self.last_update_time = time.time()
 
     def calculate_score(self, blink_freq, blink_dur, ear):
-        # 网页端展示时，我们将秒换算成分钟返回
         current_opt_min = int(self.optimal_duration_sec / 60)
         
         if self.session_start == 0:
@@ -54,7 +80,10 @@ class AttentionEngine:
         if elapsed < 30:
             self.history_blink_freq.append(blink_freq)
             self.history_blink_dur.append(blink_dur)
-            self.history_ear.append(ear)
+            
+            # 修复 Bug 3：保留真实极小值(而非粗暴截断为0.01)，并增加 epsilon 防止绝对0
+            safe_ear = max(ear, 1e-6) 
+            self.history_ear.append(safe_ear)
             
             self.baseline['blink_freq'] = max(5, sum(self.history_blink_freq) / len(self.history_blink_freq))
             self.baseline['blink_dur'] = sum(self.history_blink_dur) / len(self.history_blink_dur)
@@ -67,7 +96,9 @@ class AttentionEngine:
         # ==========================================
         base_bf = self.baseline['blink_freq']
         base_dur = self.baseline['blink_dur']
-        base_ear = self.baseline['ear']
+        
+        # 提取基线时增加数学保护，防止分母为0
+        base_ear = max(self.baseline['ear'], 1e-6) 
 
         freq_penalty = (blink_freq - base_bf * 1.3) * 3 if blink_freq > base_bf * 1.3 else 0
         b_score = max(0, 50 - freq_penalty)
@@ -75,9 +106,14 @@ class AttentionEngine:
         dur_penalty = ((blink_dur - (base_dur + 50)) / 50.0) * 6 if blink_dur > base_dur + 50 else 0
         d_score = max(0, 30 - dur_penalty)
 
-        if ear >= base_ear * 0.85: e_score = 20
-        elif ear >= base_ear * 0.70: e_score = 10 + ((ear - base_ear * 0.70) / (base_ear * 0.15)) * 10
-        else: e_score = 0
+        # 修复除法安全问题：当 base_ear 极小时，确保除法不会崩溃
+        if ear >= base_ear * 0.85: 
+            e_score = 20
+        elif ear >= base_ear * 0.70: 
+            denominator = max(base_ear * 0.15, 1e-6) # 数学极小值保护
+            e_score = 10 + ((ear - base_ear * 0.70) / denominator) * 10
+        else: 
+            e_score = 0
             
         raw_total_score = b_score + d_score + e_score
 
@@ -89,29 +125,20 @@ class AttentionEngine:
         status = "状态极佳" if avg_score >= 75 else ("轻度走神" if avg_score >= 60 else "持续分心")
 
         # ==========================================
-        # 阶段 3：Dynamic Bayesian Updating (动态贝叶斯更新)
+        # 阶段 3：Dynamic Bayesian Updating
         # ==========================================
         self.minute_score_buffer.append(avg_score)
 
-        # 核心：每经过 60 秒，触发一次贝叶斯后验推断
         if current_time - self.last_update_time >= 60:
-            # 1. 提取似然观测值 (Likelihood)
-            # 计算这 1 分钟的平均专注度
-            minute_avg = sum(self.minute_score_buffer) / len(self.minute_score_buffer)
+            # 增加 max() 保护，防止极小概率下的分母为0
+            minute_avg = sum(self.minute_score_buffer) / max(len(self.minute_score_buffer), 1)
             
-            # 2. 映射观测偏差 (Observation Z)
-            # 假设 75 分是基准阈值。如果均分高于 75，说明专注力充沛，Z值会上调；低于75则下调。
             Z = self.optimal_duration_sec * (minute_avg / 75.0)
             
-            # 3. 计算动态学习率 (Dynamic Kalman Gain / Bayesian Weight)
-            # update_count 越大，K 越小，意味着系统越来越“确信”它的结论。
-            # 兜底 0.05 保证了系统永远具备“可增可跌”的弹性。
             K = max(0.05, 1.0 / (1.0 + self.update_count * 0.6))
             
-            # 4. 贝叶斯后验更新 (Posterior Update)
             self.optimal_duration_sec = (1 - K) * self.optimal_duration_sec + K * Z
             
-            # 为下一个一分钟推断做准备
             self.update_count += 1
             self.minute_score_buffer.clear()
             self.last_update_time = current_time
