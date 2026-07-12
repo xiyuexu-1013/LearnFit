@@ -3,10 +3,6 @@
 ### An AI-Powered Real-Time Cognitive Attention Monitoring System for Personalized Learning Rhythm Discovery
 
 <p align="center">
-  <img src="assets/banner.png" width="900"/>
-</p>
-
-<p align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green)
