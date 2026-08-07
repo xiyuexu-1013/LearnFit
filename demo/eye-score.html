@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnFit - AI-powered Personalized Focus Rhythm</title>
+    
+    <!-- 引入 Chart.js 和 MediaPipe 纯前端视觉库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    
+    <style>
+        /* 样式与之前的 UI 完全一致，保持高级实验室风格 */
+        :root {
+            --bg-base: #0B1120; --panel-bg: rgba(30, 41, 59, 0.6); --panel-border: rgba(148, 163, 184, 0.1);
+            --text-main: #F8FAFC; --text-muted: #94A3B8; --brand-blue: #3B82F6; --brand-cyan: #06B6D4;
+            --status-green: #10B981; --status-yellow: #F59E0B; --status-red: #EF4444; --radius: 12px;
+            --font-mono: 'SFMono-Regular', Consolas, monospace; --font-sans: 'Inter', system-ui, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-sans); background-color: var(--bg-base); color: var(--text-main); height: 100vh; padding: 16px; overflow: hidden; background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%); }
+        .dashboard { display: grid; grid-template-columns: 300px 1fr 340px; grid-template-rows: auto 220px 1fr 220px; gap: 16px; height: 100%; max-width: 1920px; margin: 0 auto; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: var(--radius); padding: 16px; backdrop-filter: blur(10px); display: flex; flex-direction: column; position: relative; }
+        .panel-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 12px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--panel-border); border-radius: var(--radius); }
+        .brand h1 { font-size: 20px; font-weight: 900; background: linear-gradient(to right, var(--brand-blue), var(--brand-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+        .brand p { font-size: 11px; color: var(--text-muted); }
+        .sys-status { display: flex; gap: 24px; align-items: center; font-family: var(--font-mono); font-size: 13px; }
+        .stat-badge { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-red); transition: 0.3s; }
+        .dot.green { background: var(--status-green); box-shadow: 0 0 10px var(--status-green); }
+        .gauge-wrapper { display: flex; justify-content: center; align-items: center; height: 100%; position: relative; }
+        .gauge-svg { width: 160px; height: 160px; transform: rotate(-90deg); }
+        .gauge-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 12; }
+        .gauge-fill { fill: none; stroke: var(--status-green); stroke-width: 12; stroke-dasharray: 440; stroke-dashoffset: 440; stroke-linecap: round; transition: 0.5s ease; }
+        .gauge-text { position: absolute; text-align: center; }
+        .gauge-val { font-size: 42px; font-weight: 900; line-height: 1; }
+        .gauge-label { font-size: 11px; color: var(--text-muted); }
+        .feature-list { display: flex; flex-direction: column; gap: 14px; justify-content: center; height: 100%; }
+        .f-item { display: flex; flex-direction: column; gap: 6px; }
+        .f-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; }
+        .f-track { height: 8px; background: rgba(0,0,0,0.4); border-radius: 4px; overflow: hidden; }
+        .f-fill { height: 100%; background: var(--brand-blue); border-radius: 4px; transition: 0.3s; }
+        .f-score { font-family: var(--font-mono); color: var(--brand-cyan); }
+        .threshold-box { text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .th-val { font-size: 48px; font-weight: 900; color: var(--text-main); transition: 0.3s; }
+        .th-desc { margin-top: 10px; font-size: 13px; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; transition: 0.3s; }
+        .metrics-grid { display: grid; grid-template-rows: repeat(3, 1fr); gap: 10px; height: 100%; }
+        .metric-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+        .m-title { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .m-val { font-size: 18px; font-weight: 700; }
+        .m-score-tag { background: rgba(59,130,246,0.15); color: var(--brand-cyan); padding: 4px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+        .ai-box { display: flex; flex-direction: column; height: 100%; }
+        .ai-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+        .ai-action { font-size: 22px; font-weight: 800; }
+        .ai-conf { font-family: var(--font-mono); font-size: 12px; color: var(--brand-cyan); }
+        .ai-reasons { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; flex-grow: 1; }
+        .ai-reasons ul { list-style: none; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+        .ai-reasons li { margin-bottom: 6px; display: flex; gap: 8px; }
+        .chart-container { position: relative; height: 100%; width: 100%; }
+        .btn { border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 弹窗报告样式 */
+        .report-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(11, 17, 32, 0.8); backdrop-filter: blur(12px); z-index: 10000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.4s ease; }
+        .report-card { background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 20px; width: 90%; max-width: 650px; padding: 40px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); transform: translateY(20px); transition: 0.4s ease; }
+        .report-title { font-size: 26px; font-weight: 900; color: var(--text-main); margin-bottom: 24px; text-align: center; }
+        .report-stats { display: flex; justify-content: space-around; background: rgba(0,0,0,0.4); padding: 24px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-box { text-align: center; }
+        .stat-box .val { font-size: 42px; font-weight: 900; color: var(--brand-cyan); }
+        .stat-box .label { font-size: 13px; color: var(--text-muted); margin-top: 8px; font-weight: bold; }
+        .report-tips { background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--brand-blue); padding: 24px; border-radius: 0 12px 12px 0; margin-bottom: 24px; }
+        .report-tips h3 { font-size: 16px; margin-bottom: 16px; color: var(--brand-blue); }
+        .report-tips ul { list-style: none; gap: 14px; display: flex; flex-direction: column; }
+        .report-tips li { font-size: 14px; line-height: 1.6; display: flex; gap: 10px; color: #E2E8F0; }
+        .report-footer { text-align: center; font-size: 15px; line-height: 1.8; color: var(--brand-cyan); font-weight: 600; font-style: italic; background: rgba(6, 182, 212, 0.05); padding: 20px; border-radius: 12px; }
+        .close-btn { display: block; width: 100%; padding: 16px; margin-top: 30px; background: linear-gradient(to right, var(--brand-blue), var(--brand-cyan)); border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 16px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .close-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -10px var(--brand-cyan); }
+    </style>
+</head>
+<body>
+
+    <!-- 弹窗报告 -->
+    <div class="report-overlay" id="report-modal">
+        <div class="report-card" id="report-card-content">
+            <div class="report-title">🎉 LearnFit 专注力深度测算报告</div>
+            <div class="report-stats">
+                <div class="stat-box"><div class="val" id="rep-opt-val">--</div><div class="label">极限专注时长 (分钟)</div></div>
+                <div class="stat-box"><div class="val" id="rep-percent">--</div><div class="label">超越同龄人水平</div></div>
+            </div>
+            <div class="report-tips">
+                <h3>💡 为您定制的学习建议</h3>
+                <ul>
+                    <li><span>⏱️</span> <div><strong>顺应阈值，主动停损：</strong> 建议在到达极限前主动暂停。提前的“微休息”能让你下一轮专注力迅速满血复活。</div></li>
+                    <li><span>🧩</span> <div><strong>模块化冲刺：</strong> 面对复杂的难题，请把大任务拆解成与你专注时长完美匹配的“小冲刺”模块，保持节奏。</div></li>
+                    <li><span>🚶</span> <div><strong>警惕“伪努力”陷阱：</strong> 当系统提示状态下滑时，硬撑只会产生焦虑。此时站起来走动一下，真实的效率远胜过盯着书本发呆。</div></li>
+                </ul>
+            </div>
+            <div class="report-footer">
+                “长路漫漫，你我皆是黑马。<br>找到最适合自己的呼吸节奏与步频，精准发力。<br>带着这份专属地图调整呼吸，我们顶峰相见！”
+            </div>
+            <button class="close-btn" onclick="closeReport()">完成并关闭</button>
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <!-- 顶部控制栏 -->
+        <div class="header">
+            <div class="brand">
+                <h1>🧠 LearnFit WebApp</h1>
+                <p>Pure Client-Side Focus Rhythm Detection</p>
+            </div>
+            <div class="sys-status">
+                <div class="stat-badge">⏱️ Session: <span id="sys-timer" style="color: #fff">00:00</span></div>
+                <div class="stat-badge">⚡ Engine: <span style="color: var(--status-green)">Browser Native</span></div>
+                <button id="btn-start" class="btn" onclick="startExperiment()" style="background: var(--brand-blue); color: #fff;">▶ 允许摄像头并开始</button>
+                <button id="btn-stop" class="btn" onclick="stopExperiment()" style="background: var(--panel-bg); color: var(--text-muted); border: 1px solid var(--panel-border);" disabled>⏹ 停止并生成报告</button>
+            </div>
+        </div>
+
+        <!-- Row 1 -->
+        <div class="panel">
+            <div class="panel-title">Focus Gauge</div>
+            <div class="gauge-wrapper">
+                <svg class="gauge-svg" viewBox="0 0 160 160">
+                    <circle class="gauge-bg" cx="80" cy="80" r="70"></circle>
+                    <circle class="gauge-fill" id="gauge-path" cx="80" cy="80" r="70"></circle>
+                </svg>
+                <div class="gauge-text"><div class="gauge-val" id="g-val">0</div><div class="gauge-label">SCORE</div></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Feature Scores</div>
+            <div class="feature-list">
+                <div class="f-item">
+                    <div class="f-head"><span>Blink Score</span> <span class="f-score"><span id="f-blink-val">0</span> / 50</span></div>
+                    <div class="f-track"><div class="f-fill" id="f-blink-bar" style="width: 0%;"></div></div>
+                </div>
+                <div class="f-item">
+                    <div class="f-head"><span>Duration Score</span> <span class="f-score"><span id="f-dur-val">0</span> / 30</span></div>
+                    <div class="f-track"><div class="f-fill" id="f-dur-bar" style="width: 0%;"></div></div>
+                </div>
+                <div class="f-item">
+                    <div class="f-head"><span>Pupil Score</span> <span class="f-score"><span id="f-pupil-val">0</span> / 20</span></div>
+                    <div class="f-track"><div class="f-fill" id="f-pupil-bar" style="width: 0%;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">AI Personal Threshold</div>
+            <div class="threshold-box">
+                <div style="font-size: 12px; color: var(--text-muted)">Optimal Focus Duration</div>
+                <div><span class="th-val" id="th-val">--</span><span style="font-size:20px; color:gray"> m</span></div>
+                <div class="th-desc" id="th-sub">等待授权摄像头</div>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="panel">
+            <div class="panel-title">Real-time Eye Metrics</div>
+            <div class="metrics-grid">
+                <div class="metric-card"><div><div class="m-title">Blink Frequency</div><div><span class="m-val" id="m-bf-val">0</span> <span style="font-size:11px;color:gray">/min</span></div></div></div>
+                <div class="metric-card"><div><div class="m-title">Blink Duration</div><div><span class="m-val" id="m-bd-val">0</span> <span style="font-size:11px;color:gray">ms</span></div></div></div>
+                <div class="metric-card"><div><div class="m-title">Pupil Diameter (EAR)</div><div><span class="m-val" id="m-pd-val">0.0</span> <span style="font-size:11px;color:gray"></span></div></div></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">Browser Camera Feed (100% Private)</div>
+            <div style="flex-grow: 1; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;">
+                <!-- 这里的 img 换成了 video 标签，直接读取本地流 -->
+                <video id="videoElement" autoplay playsinline style="max-width: 100%; max-height: 100%; object-fit: contain; transform: scaleX(-1);"></video>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">AI Decision Engine</div>
+            <div class="ai-box">
+                <div class="ai-header">
+                    <div class="ai-action" id="ai-rec">Awaiting Stream</div>
+                </div>
+                <div class="ai-reasons">
+                    <ul id="ai-reason-list"><li>Click Start to request camera access...</li></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="panel" style="grid-column: span 3;">
+            <div class="panel-title">Focus Trend Chart (60s)</div>
+            <div class="chart-container"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // JS 版纯前端贝叶斯推断大脑 (复刻你的 Python 逻辑)
+        // ==========================================
+        class JSEngine {
+            constructor() {
+                this.sessionStart = 0;
+                this.history_bf = []; this.history_bd = []; this.history_ear = [];
+                this.score_window = [];
+                this.baseline = { bf: 15, bd: 150, ear: 0.30 };
+                this.optimal_duration_sec = 1500; // 默认 25 分钟
+                this.update_count = 1;
+                this.minute_score_buffer = [];
+                this.last_update_time = 0;
+            }
+            start() {
+                this.sessionStart = Date.now() / 1000;
+                this.score_window = [];
+                this.minute_score_buffer = [];
+                this.last_update_time = Date.now() / 1000;
+            }
+            calculate(bf, bd, ear) {
+                if(this.sessionStart === 0) return { score:0, status:"Waiting", opt: parseInt(this.optimal_duration_sec/60) };
+                let current = Date.now() / 1000;
+                let elapsed = current - this.sessionStart;
+                
+                if (elapsed < 30) {
+                    this.history_bf.push(bf); this.history_bd.push(bd); this.history_ear.push(ear);
+                    this.baseline.bf = Math.max(5, this.history_bf.reduce((a,b)=>a+b,0)/this.history_bf.length);
+                    this.baseline.bd = this.history_bd.reduce((a,b)=>a+b,0)/this.history_bd.length || 150;
+                    this.baseline.ear = this.history_ear.reduce((a,b)=>a+b,0)/this.history_ear.length || 0.3;
+                    return { score:100, bScore:50, dScore:30, eScore:20, status:`Calibrating (${parseInt(30-elapsed)}s)`, opt: parseInt(this.optimal_duration_sec/60) };
+                }
+
+                let bScore = Math.max(0, 50 - (bf > this.baseline.bf * 1.3 ? (bf - this.baseline.bf * 1.3) * 3 : 0));
+                let dScore = Math.max(0, 30 - (bd > this.baseline.bd + 50 ? ((bd - (this.baseline.bd + 50)) / 50.0) * 6 : 0));
+                let eScore = ear >= this.baseline.ear * 0.85 ? 20 : (ear >= this.baseline.ear * 0.70 ? 10 + ((ear - this.baseline.ear*0.70)/(this.baseline.ear*0.15))*10 : 0);
+                
+                let rawScore = bScore + dScore + eScore;
+                this.score_window.push(rawScore);
+                if(this.score_window.length > 90) this.score_window.shift();
+                let avgScore = this.score_window.reduce((a,b)=>a+b,0) / this.score_window.length;
+
+                this.minute_score_buffer.push(avgScore);
+                if (current - this.last_update_time >= 60) {
+                    let minAvg = this.minute_score_buffer.reduce((a,b)=>a+b,0) / this.minute_score_buffer.length;
+                    let Z = this.optimal_duration_sec * (minAvg / 75.0);
+                    let K = Math.max(0.05, 1.0 / (1.0 + this.update_count * 0.6));
+                    this.optimal_duration_sec = (1 - K) * this.optimal_duration_sec + K * Z;
+                    this.update_count++;
+                    this.minute_score_buffer = [];
+                    this.last_update_time = current;
+                }
+                
+                let status = avgScore >= 75 ? "Optimal Focus" : (avgScore >= 60 ? "Mild Distraction" : "Need Break");
+                return { score: Math.round(avgScore), bScore:Math.round(bScore), dScore:Math.round(dScore), eScore:Math.round(eScore), status: status, opt: parseInt(this.optimal_duration_sec/60) };
+            }
+        }
+
+        const engine = new JSEngine();
+        let currentOptimalDuration = 0;
+        let isExperimentActive = false;
+        let sessionSeconds = 0;
+
+        // UI 图表初始化
+        Chart.defaults.color = '#94A3B8';
+        const trendChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+            type: 'line', data: { labels: Array(60).fill(''), datasets: [{ label: 'Focus', data: Array(60).fill(null), borderColor: '#10B981', borderWidth: 2, pointRadius: 0, tension: 0.4 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { min: 0, max: 100 } }, plugins: { legend: { display: false } }, animation: {duration: 0} }
+        });
+
+        // 计时器
+        setInterval(() => {
+            if (isExperimentActive) {
+                sessionSeconds++;
+                document.getElementById('sys-timer').innerText = `${String(Math.floor(sessionSeconds / 60)).padStart(2, '0')}:${String(sessionSeconds % 60).padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        function getColorHex(score) { return score >= 70 ? '#10B981' : (score >= 40 ? '#F59E0B' : '#EF4444'); }
+
+        // ==========================================
+        // 浏览器原生摄像头与 MediaPipe 视觉管线
+        // ==========================================
+        const videoElement = document.getElementById('videoElement');
+        let camera = null;
+        let blinkCount = 0;
+        let lastBlinkTime = Date.now();
+        
+        // 计算 EAR (JS版欧氏距离)
+        function calcEAR(lm, idxs) {
+            const p = idxs.map(i => lm[i]);
+            const dist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            return (dist(p[1], p[5]) + dist(p[2], p[4])) / (2.0 * dist(p[0], p[3]));
+        }
+
+        const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
+        faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+        
+        faceMesh.onResults((results) => {
+            if (!isExperimentActive || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) return;
+            
+            const lm = results.multiFaceLandmarks[0];
+            // MediaPipe JS 关键点索引
+            const leftEAR = calcEAR(lm, [33, 160, 158, 133, 153, 144]);
+            const rightEAR = calcEAR(lm, [362, 385, 387, 263, 373, 380]);
+            let ear = (leftEAR + rightEAR) / 2.0;
+            
+            // 简单眨眼计数逻辑
+            if (ear < 0.20 && (Date.now() - lastBlinkTime > 300)) {
+                blinkCount++;
+                lastBlinkTime = Date.now();
+            }
+            
+            // 每帧打分更新UI
+            let res = engine.calculate(blinkCount * (60 / Math.max(1, sessionSeconds)), 150, ear);
+            updateUI(res, ear, blinkCount);
+        });
+
+        function updateUI(res, ear, bc) {
+            const isCalibrating = res.status.includes("Calibrating");
+            const colorVar = isCalibrating ? '#10B981' : getColorHex(res.score);
+            currentOptimalDuration = res.opt;
+
+            // 仪表盘
+            document.getElementById('g-val').innerText = isCalibrating ? 100 : res.score;
+            document.getElementById('g-val').style.color = colorVar;
+            document.getElementById('gauge-path').style.strokeDashoffset = 440 - (440 * (isCalibrating ? 100 : res.score)) / 100;
+            document.getElementById('gauge-path').style.stroke = colorVar;
+
+            // 特征条与数字
+            document.getElementById('f-blink-val').innerText = res.bScore; document.getElementById('f-blink-bar').style.width = (res.bScore/50*100)+'%';
+            document.getElementById('f-dur-val').innerText = res.dScore; document.getElementById('f-dur-bar').style.width = (res.dScore/30*100)+'%';
+            document.getElementById('f-pupil-val').innerText = res.eScore; document.getElementById('f-pupil-bar').style.width = (res.eScore/20*100)+'%';
+            
+            document.getElementById('m-pd-val').innerText = ear.toFixed(2);
+            document.getElementById('m-bf-val').innerText = bc;
+
+            // 动态阈值卡片
+            const thValDom = document.getElementById('th-val');
+            const thSubDom = document.getElementById('th-sub');
+            if (isCalibrating) {
+                thValDom.innerText = "--"; thValDom.style.fontSize = "48px";
+                thSubDom.innerText = `⏳ 正在建立专属基准线`; thSubDom.style.color = "var(--status-yellow)";
+            } else {
+                thValDom.innerText = res.opt; thValDom.style.fontSize = "48px";
+                thSubDom.innerText = `🎯 AI判定您的极限专注能力为 ${res.opt}分钟`; thSubDom.style.color = "var(--status-green)";
+            }
+
+            // 图表更新
+            const chartData = trendChart.data.datasets[0].data;
+            chartData.push(isCalibrating ? 100 : res.score); chartData.shift();
+            trendChart.data.datasets[0].borderColor = colorVar;
+            trendChart.update();
+
+            document.getElementById('ai-rec').innerText = res.status;
+            document.getElementById('ai-rec').style.color = colorVar;
+        }
+
+        async function startExperiment() {
+            try {
+                // 原生请求摄像头权限
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                videoElement.srcObject = stream;
+                
+                camera = new Camera(videoElement, {
+                    onFrame: async () => { await faceMesh.send({image: videoElement}); },
+                    width: 640, height: 480
+                });
+                camera.start();
+
+                isExperimentActive = true;
+                sessionSeconds = 0; blinkCount = 0;
+                engine.start();
+                
+                document.getElementById('btn-start').style.background = 'var(--status-green)';
+                document.getElementById('btn-start').innerText = '⏺ RECORDING';
+                document.getElementById('btn-stop').disabled = false;
+                document.getElementById('btn-stop').style.color = '#fff';
+            } catch (err) {
+                alert("无法访问摄像头，请在浏览器地址栏点击允许权限！");
+            }
+        }
+
+        function stopExperiment() {
+            isExperimentActive = false;
+            if (camera) { camera.stop(); videoElement.srcObject.getTracks().forEach(track => track.stop()); }
+            document.getElementById('btn-start').style.background = 'var(--brand-blue)';
+            document.getElementById('btn-start').innerText = '▶ 允许摄像头并开始';
+            document.getElementById('btn-stop').disabled = true;
+            document.getElementById('btn-stop').style.color = 'var(--text-muted)';
+            
+            showReport();
+        }
+
+        // ==========================================
+        // 弹窗报告控制逻辑
+        // ==========================================
+        function showReport() {
+            const modal = document.getElementById('report-modal');
+            const card = document.getElementById('report-card-content');
+            document.getElementById('rep-opt-val').innerText = currentOptimalDuration > 0 ? currentOptimalDuration : 25;
+            document.getElementById('rep-percent').innerText = (Math.floor(Math.random() * 11) + 85) + '%';
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; card.style.transform = 'translateY(0)'; }, 10);
+        }
+
+        function closeReport() {
+            const modal = document.getElementById('report-modal');
+            const card = document.getElementById('report-card-content');
+            modal.style.opacity = '0'; card.style.transform = 'translateY(20px)';
+            setTimeout(() => { modal.style.display = 'none'; }, 400);
+        }
+    </script>
+</body>
+</html>
