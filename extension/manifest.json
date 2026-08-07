@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "LearnFit AI - Privacy Focus Coach",
+  "version": "1.0.0",
+  "description": "Real-time, 100% on-device AI focus tracking for your browser.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ]
+}
