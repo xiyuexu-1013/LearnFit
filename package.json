@@ -1,0 +1,17 @@
+{
+  "name": "learnfit-ai",
+  "version": "1.0.0",
+  "description": "Privacy-first, 100% client-side AI eye-tracking focus tracker SDK and extension.",
+  "main": "./core/index.js",
+  "type": "module",
+  "keywords": [
+    "eye-tracking",
+    "focus-detection",
+    "mediapipe",
+    "privacy-first",
+    "productivity",
+    "ai-coach"
+  ],
+  "author": "Anna Xu",
+  "license": "MIT"
+}
