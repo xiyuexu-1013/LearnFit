@@ -2,6 +2,20 @@
 
 This is the story of why I built LearnFit, what failed in each version, and how those failures changed the product. Dates from July onward are supported by the repository history. The March–June entry comes from my early design and experiment notes, before I had a complete project on GitHub.
 
+## The project at a glance
+
+```mermaid
+flowchart LR
+    A["Fixed-timer problem<br/>Mar–Jun"] --> B["Python + MediaPipe prototype<br/>Jul 5"]
+    B --> C["Blink state machine + personal baseline<br/>Jul 12"]
+    C --> D["Browser engine + extension MVP<br/>Aug 7"]
+    D --> E["Honest scoring + product redesign<br/>Sep 18"]
+    E --> F["Background extension + user research<br/>Sep 19"]
+    F --> G["Public deployment + competition evidence<br/>Sep 20"]
+```
+
+The screenshots below come from my own development and testing environment. They show real intermediate versions, including interfaces and terminology that I later changed.
+
 ## March–June 2026 — The question that started it
 
 I started with a problem I had with the Pomodoro method.
@@ -27,6 +41,10 @@ This is the first day with a complete trail of GitHub commits. I built the origi
 `camera → face landmarks → EAR → blink detection → score → WebSocket → dashboard`
 
 I separated the program into camera capture, face detection, eye features, blink detection, head pose, fatigue rules, scoring, WebSocket communication, and the dashboard. For the first time, I could see a live signal move on a chart while I studied.
+
+![Early Python and WebSocket dashboard showing a live camera frame, score, and 60-second signal chart](docs/images/development/python-prototype-dashboard.png)
+
+*The early experiment dashboard. It displayed the camera feed, a live score, a suggested duration, and a 60-second trace. This version still used stronger “focus” language than I use today.*
 
 Getting a graph on screen was exciting, but using it exposed the real problems immediately:
 
@@ -57,6 +75,10 @@ This iteration focused on the question I kept running into: why were the blink v
 
 The Python version averaged the latest 90 frames to reduce single-frame noise. It also used each minute's average to gradually update a suggested study duration. I originally labeled this section “Bayesian updating.” Looking back, **adaptive weighted updating with a decreasing gain** is a more accurate description; it was not a complete, validated probabilistic model. I kept the useful idea—adjust gradually instead of reacting to one frame—but removed the inflated claim.
 
+![Terminal output from the Python prototype showing WebSocket startup, CSV recording, minute averages, and adaptive duration updates](docs/images/development/python-adaptive-run.png)
+
+*A real terminal run from July 5. The log shows the local WebSocket server, CSV experiment recording, minute averages, and the changing duration estimate. It is also evidence of terminology I later corrected.*
+
 ## August 7, 2026 — Moving from Python to the browser
 
 I began rewriting the core in JavaScript and created separate `engine`, `tracker`, and `landmarks` modules, together with the first Chrome extension prototype.
@@ -67,6 +89,10 @@ This move established the project's privacy direction: video frames and facial l
 
 The first extension was still incomplete. When a normal webpage was hidden or closed, browser throttling and tab lifecycle rules could pause camera work and timing. The popup looked like an extension, but it did not yet provide a reliable background session.
 
+![Browser-native LearnFit V5 dashboard with the 50, 30, and 20 component scores and a local camera preview](docs/images/development/browser-v5-dashboard.png)
+
+*The browser-native V5 dashboard. This version removed the Python setup and exposed the 50/30/20 components, but its dark control-panel design and “AI” labels still felt more confident than the evidence justified.*
+
 ## September 18, 2026 — Rebuilding both the score and the product
 
 Instead of adding more impressive algorithm names, I reviewed what every number actually represented and where the interface could mislead someone.
@@ -76,6 +102,14 @@ I kept the original **50 / 30 / 20** structure, but changed the comparison from 
 - **50 points for blink frequency:** a penalty begins only when the current frequency rises to roughly 130% of that session's personal baseline.
 - **30 points for blink duration:** duration is recorded only for a completed blink, and a penalty begins roughly 50 ms above the personal baseline.
 - **20 points for eye openness:** the current EAR is compared with the learner's baseline EAR. The product does not claim to measure pupil size in millimeters.
+
+```mermaid
+pie showData
+    title Current score composition (100 points)
+    "Blink frequency vs. personal baseline" : 50
+    "Completed blink duration vs. personal baseline" : 30
+    "Eye openness (EAR) vs. personal baseline" : 20
+```
 
 I also corrected several less visible problems:
 
@@ -105,6 +139,25 @@ I also added an optional five-minute evaluation and a research dashboard for rea
 - Duration, final score, and survey answers are submitted only after explicit consent.
 
 Camera frames, facial landmarks, raw EAR measurements, task text, browsing history, and locally saved reflections are not uploaded. The dashboard summarizes anonymous use and feedback and can export CSV evidence for student innovation competitions.
+
+```mermaid
+flowchart TB
+    subgraph DEVICE["Learner's device"]
+        CAM[Camera frames] --> MP[MediaPipe landmarks]
+        MP --> SIGNAL[EAR + completed blink events]
+        SIGNAL --> SCORE[Personal-baseline score]
+        SCORE --> UI[Live view and local report]
+        PRIVATE["Never uploaded:<br/>frames, landmarks, raw EAR,<br/>task text, browsing history"]
+    end
+
+    subgraph CLOUD["Cloudflare research backend"]
+        TOTALS[Anonymous daily start/completion totals]
+        FEEDBACK[Consent-gated duration, final score, and survey]
+    end
+
+    UI -->|No identifier| TOTALS
+    CONSENT[User explicitly opts in] --> FEEDBACK
+```
 
 ## September 20, 2026 — Publishing and documenting the project
 
