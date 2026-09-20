@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LearnFit — prototype</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap');
+
+    :root { --ink:#17362c; --deep:#10352a; --cream:#f4f0e7; --paper:#fffdf8; --red:#bb4b35; --lime:#d9ee5e; --line:#d6d0c4; --quiet:#617269; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--cream); color:var(--ink); font-family:Manrope,Arial,sans-serif; }
+    button,input { font:inherit; }
+    .mono { font-family:"DM Mono",monospace; letter-spacing:.02em; }
+    .page { max-width:1440px; margin:auto; padding:20px 32px 44px; overflow:hidden; }
+    .nav { display:flex; justify-content:space-between; align-items:center; padding:5px 0 26px; font-size:12px; }
+    .brand { font-family:"Instrument Serif",serif; font-size:30px; letter-spacing:-1px; display:flex; align-items:center; gap:10px; }
+    .brand-mark { width:25px; height:25px; background:var(--red); color:var(--paper); display:grid; place-items:center; border-radius:4px; font:17px "DM Mono"; transform:rotate(-5deg); }
+    .nav-right { display:flex; align-items:center; gap:24px; color:#395247; }
+    .nav-right a { color:inherit; text-decoration:none; }
+    .status { display:flex; gap:7px; align-items:center; padding:7px 10px; border:1px solid #bed44c; background:var(--lime); border-radius:99px; color:#294314; font-size:10px; }
+    .pulse { width:6px; height:6px; border-radius:50%; background:#3c641f; box-shadow:0 0 0 4px #eff9b6; }
+    .hero { display:grid; grid-template-columns:minmax(0,1.04fr) minmax(430px,.96fr); min-height:620px; border:1px solid var(--ink); border-radius:9px; overflow:hidden; background:var(--paper); }
+    .hero-copy { padding:52px clamp(30px,5vw,76px); display:flex; flex-direction:column; justify-content:space-between; border-right:1px solid var(--line); background-image:radial-gradient(#d8d1c6 0.8px,transparent .8px); background-size:15px 15px; }
+    .kicker { color:var(--red); font-size:11px; font-weight:700; }
+    h1 { font-family:"Instrument Serif",Georgia,serif; font-weight:400; font-size:clamp(58px,7.2vw,104px); line-height:.88; letter-spacing:-.055em; max-width:650px; margin:20px 0 27px; }
+    h1 i { color:var(--red); font-weight:400; }
+    .intro { max-width:475px; font-size:15px; line-height:1.75; color:#395247; }
+    .prototype-form { margin-top:36px; width:min(100%,480px); }
+    .label { display:flex; justify-content:space-between; margin-bottom:9px; font-size:11px; font-weight:700; }
+    .label span { color:var(--quiet); font-weight:400; }
+    .input-row { display:flex; background:var(--paper); border:1px solid var(--ink); padding:5px; border-radius:5px; box-shadow:4px 4px 0 var(--ink); }
+    .input-row input { flex:1; min-width:0; border:0; background:transparent; padding:12px 10px; outline:0; color:var(--ink); font-size:13px; }
+    .go { border:0; background:var(--ink); color:#fffdf8; padding:0 17px; border-radius:3px; cursor:pointer; font-weight:700; font-size:12px; }
+    .go:hover { background:var(--red); }
+    .little-actions { display:flex; flex-wrap:wrap; gap:16px; margin:26px 0 0; font-size:11px; }
+    .text-link { padding:0; border:0; background:none; color:var(--ink); text-decoration:underline; text-underline-offset:4px; cursor:pointer; }
+    .privacy-line { display:flex; gap:9px; align-items:flex-start; max-width:500px; font-size:10px; line-height:1.65; color:var(--quiet); }
+    .shield { color:var(--red); font-size:16px; line-height:1; }
+    .lab { position:relative; padding:28px; background:var(--deep); color:#edf5e2; overflow:hidden; }
+    .lab:before { content:""; position:absolute; width:760px; height:760px; border:1px solid #78966a66; border-radius:50%; top:-270px; right:-290px; box-shadow:0 0 0 80px #78966a10,0 0 0 160px #78966a0d; }
+    .lab-top { display:flex; justify-content:space-between; align-items:center; position:relative; z-index:1; font-size:10px; color:#bfceb8; }
+    .lab-top b { color:var(--lime); font-weight:500; }
+    .preview { position:relative; z-index:1; margin:42px auto 26px; max-width:440px; aspect-ratio:1.18; background:#183f32; border:1px solid #6b8a7e; padding:14px; }
+    .camera-head { display:flex; justify-content:space-between; color:#bfceb8; font-size:9px; }
+    .camera-plane { height:calc(100% - 28px); margin-top:14px; display:grid; place-items:center; overflow:hidden; background:linear-gradient(135deg,#214c3e,#13372d); }
+    .face { width:126px; height:154px; border:1.5px solid #d9ee5e; border-radius:48% 48% 44% 44%; position:relative; box-shadow:0 0 0 20px #d9ee5e09; }
+    .eye { width:31px; height:11px; border-top:1.5px solid #d9ee5e; position:absolute; top:59px; }
+    .eye.left { left:24px; transform:rotate(5deg); } .eye.right { right:24px; transform:rotate(-5deg); }
+    .eye:after { content:""; position:absolute; width:4px; height:4px; background:var(--red); border-radius:50%; top:-3px; left:14px; }
+    .nose { position:absolute; width:1px; height:24px; background:#d9ee5e; top:72px; left:62px; }
+    .track { position:absolute; inset:0; background-image:linear-gradient(#d9ee5e15 1px,transparent 1px),linear-gradient(90deg,#d9ee5e15 1px,transparent 1px); background-size:30px 30px; }
+    .marker { position:absolute; width:16px; height:16px; border:1px solid var(--red); border-radius:50%; left:72%; top:38%; box-shadow:0 0 0 4px #bb4b3533; }
+    .camera-note { position:absolute; bottom:9px; left:13px; color:#bfceb8; font-size:8px; }
+    .metrics { position:relative; z-index:1; display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid #6b8a7e; border-left:1px solid #6b8a7e; }
+    .metric { min-height:93px; padding:14px; border-right:1px solid #6b8a7e; border-bottom:1px solid #6b8a7e; }
+    .metric span { display:block; color:#afc2af; font-size:9px; } .metric strong { display:block; margin-top:12px; font:24px "DM Mono"; color:#fffdf8; } .metric i { font-style:normal; color:var(--lime); font-size:10px; }
+    .below { display:grid; grid-template-columns:1.08fr .92fr; gap:20px; margin-top:20px; }
+    .letter { background:var(--red); padding:46px 52px; color:#fff5e8; border-radius:8px; min-height:430px; position:relative; overflow:hidden; }
+    .letter:after { content:"dear\A learner"; white-space:pre; position:absolute; right:-21px; bottom:-42px; color:#e1745c; font:128px/.72 "Instrument Serif"; letter-spacing:-8px; }
+    .letter .mono { font-size:10px; color:#ffd6b0; position:relative; z-index:1; }
+    .letter h2 { position:relative; z-index:1; font:48px/.95 "Instrument Serif"; letter-spacing:-2px; max-width:550px; margin:29px 0 22px; }
+    .letter p { position:relative; z-index:1; max-width:570px; color:#fff0df; font-size:14px; line-height:1.8; }
+    .signature { position:relative; z-index:1; margin-top:24px; font:25px "Instrument Serif"; }
+    .log { border:1px solid var(--ink); border-radius:8px; background:#fbf8ef; padding:30px; }
+    .log h2 { font:42px/.9 "Instrument Serif"; letter-spacing:-2px; margin:6px 0 28px; }
+    .log-entry { border-top:1px solid var(--line); padding:17px 0; display:grid; grid-template-columns:74px 1fr; gap:14px; }
+    .log-entry time { color:var(--red); font-size:10px; } .log-entry h3 { margin:0 0 6px; font-size:13px; } .log-entry p { margin:0; color:var(--quiet); font-size:11px; line-height:1.65; }
+    .footer { display:flex; justify-content:space-between; gap:22px; padding:27px 5px 0; color:var(--quiet); font-size:10px; }
+    @media(max-width:850px) { .page { padding:15px; } .hero,.below { grid-template-columns:1fr; } .hero-copy { border-right:0; border-bottom:1px solid var(--line); min-height:550px; } h1 { font-size:70px; } .letter { min-height:350px; } .nav-right a { display:none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <nav class="nav">
+      <div class="brand"><span class="brand-mark">⌁</span>LearnFit</div>
+      <div class="nav-right"><a href="#letter">A note from the maker</a><a href="#log">Build log</a><span class="status"><b class="pulse"></b> browser-only</span></div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div>
+          <div class="kicker mono">A PRIVATE STUDY RHYTHM EXPERIMENT — v0.6</div>
+          <h1>Stop borrowing <i>someone else’s</i> study schedule.</h1>
+          <p class="intro">LearnFit is a small browser experiment for noticing your own rhythm. It does not tell you how long you <em>should</em> study. It gives you a quiet place to look at what changed, then lets you decide what to do with it.</p>
+          <form class="prototype-form">
+            <label class="label">WHAT ARE YOU SITTING DOWN TO DO? <span>optional</span></label>
+            <div class="input-row"><input aria-label="Study task" placeholder="finish two pages of chemistry notes"><button class="go" type="button">begin ↗</button></div>
+          </form>
+          <div class="little-actions"><button class="text-link" type="button">No camera? Open a recorded example.</button><span class="mono">~ 30 sec to make a baseline</span></div>
+        </div>
+        <div class="privacy-line"><span class="shield">♢</span><span><b>Nothing leaves this page.</b> LearnFit uses the browser camera to observe eye openness and blinks. It does not record video, read your thoughts, or decide whether you were “focused.”</span></div>
+      </div>
+
+      <aside class="lab">
+        <div class="lab-top mono"><span>DESK CAM / LOCAL ONLY</span><b>● SIGNAL: STEADY</b></div>
+        <div class="preview">
+          <div class="camera-head mono"><span>CAM_01</span><span>29 FPS</span></div><div class="camera-plane"><div class="track"></div><div class="face"><span class="eye left"></span><span class="eye right"></span><span class="nose"></span></div><span class="marker"></span></div><span class="camera-note mono">illustrative tracking view · not a real camera feed</span>
+        </div>
+        <div class="metrics"><div class="metric"><span>eye openness</span><strong>0.302</strong></div><div class="metric"><span>blink rhythm</span><strong>12.4 <i>/min</i></strong></div><div class="metric"><span>session signal</span><strong>91<i>%</i></strong></div></div>
+      </aside>
+    </section>
+
+    <section class="below">
+      <article class="letter" id="letter">
+        <div class="mono">A NOTE FROM THE MAKER / READ ME FIRST</div>
+        <h2>Hi. This is a project called LearnFit.</h2>
+        <p>I made it because so much advice about studying is weirdly loud: study for this many minutes, rest for that many minutes, repeat until you feel guilty. I wanted to make something quieter. LearnFit starts with <i>your</i> baseline and helps you notice changes as you work, so you can experiment, adjust, and find a way of studying that actually fits your life.</p>
+        <p>It is still an experiment. The number on screen is not your worth, your attention span, or a diagnosis. It is just one small signal you can use alongside how you feel.</p>
+        <div class="signature">— Xiyue, building in public</div>
+      </article>
+      <aside class="log" id="log">
+        <div class="mono" style="font-size:10px;color:var(--red)">THINGS I CHANGED WHILE MAKING THIS</div>
+        <h2>build log</h2>
+        <div class="log-entry"><time class="mono">v0.1<br>early</time><div><h3>I started with a score. It felt wrong.</h3><p>The first version tried to label “focus.” That sounded confident, but it wasn’t honest about what a webcam can know.</p></div></div>
+        <div class="log-entry"><time class="mono">v0.4<br>later</time><div><h3>I replaced the score with a personal baseline.</h3><p>Now the app compares small changes with the same person’s own session, and explains the ingredients.</p></div></div>
+        <div class="log-entry"><time class="mono">v0.6<br>today</time><div><h3>I added pauses, reflections, and a real exit ramp.</h3><p>You can stop, write what helped, and choose what to try next. No streaks. No leaderboard.</p></div></div>
+      </aside>
+    </section>
+
+    <footer class="footer mono"><span>LEARNFIT / A SMALL STUDY TOOL FOR PEOPLE, NOT OPTIMIZATION</span><span>prototype — visual direction only</span></footer>
+  </main>
+</body>
+</html>

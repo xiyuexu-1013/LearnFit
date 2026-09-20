@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f7f8fa"/>
+  <rect x="32" y="32" width="1136" height="566" rx="30" fill="#ffffff" stroke="#e3eae5"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="90" y="117" font-size="29" font-weight="700" fill="#2c3c36">LearnFit<tspan fill="#357a6d">.</tspan></text>
+    <text x="92" y="190" font-size="12" font-weight="700" letter-spacing="3" fill="#357a6d">PERSONAL BY DESIGN</text>
+    <text x="86" y="283" font-size="60" font-weight="700" letter-spacing="-2" fill="#283832">Find your own</text>
+    <text x="86" y="355" font-size="60" font-weight="700" letter-spacing="-2" fill="#283832">study rhythm.</text>
+    <text x="91" y="411" font-size="21" fill="#6c7e74">Real-time eye behavior. A personal baseline.</text>
+    <text x="91" y="444" font-size="21" fill="#6c7e74">Simple, explainable feedback.</text>
+    <rect x="90" y="496" width="327" height="39" rx="19.5" fill="#eff5f2"/>
+    <circle cx="109" cy="515" r="4" fill="#357a6d"/>
+    <text x="125" y="521" font-size="14" fill="#517466">On-device processing · No video uploaded</text>
+    <text x="913" y="549" font-size="15" text-anchor="middle" fill="#73877b">learnfit.pages.dev</text>
+  </g>
+  <g fill="none" stroke="#e1eae4">
+    <circle cx="904" cy="304" r="204"/>
+    <circle cx="904" cy="304" r="164" stroke-dasharray="4 7"/>
+    <circle cx="904" cy="304" r="124"/>
+  </g>
+  <circle cx="971" cy="111" r="6" fill="#8bac9a"/>
+  <circle cx="743" cy="405" r="5" fill="#8bac9a"/>
+  <g transform="translate(797 197) scale(1.672)">
+    <rect width="128" height="128" rx="30" fill="#357a6d"/>
+    <g fill="none" stroke="#f7faf6" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M64 43c-10-8-22-11-37-10v52c15-1 27 2 37 10 10-8 22-11 37-10V33c-15-1-27 2-37 10Z"/>
+      <path d="M64 43v12m0 31v9"/>
+      <path d="M37 65h8c5 0 5-11 10-11s7 25 12 25 6-14 11-14h13"/>
+    </g>
+  </g>
+</svg>

@@ -1,17 +1,71 @@
 {
-  "name": "learnfit-ai",
+  "name": "@learnfit/core",
   "version": "1.0.0",
-  "description": "Privacy-first, 100% client-side AI eye-tracking focus tracker SDK and extension.",
-  "main": "./core/index.js",
+  "description": "Privacy-first, browser-based study rhythm tracking with a personal baseline and rule-based feedback.",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "browser": "./dist/index.js",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/core",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "npm run prepare:site && vite --open /",
+    "prepare:site": "node scripts/prepare-site.mjs",
+    "build:site": "npm run prepare:site && vite build",
+    "build:pages": "npm run build:site && node scripts/prepare-pages-mirror.mjs",
+    "deploy": "npm run check && npm test && npm run build && npm run build:site && wrangler deploy",
+    "build:extension": "npm run prepare:site && node scripts/prepare-extension.mjs",
+    "build": "esbuild src/core/index.js --bundle --format=esm --platform=browser --sourcemap --outfile=dist/index.js",
+    "check": "node --check src/core/index.js && node --check src/core/tracker.js && node --check src/core/engine.js && node --check extension/chrome/background.js && node --check extension/chrome/popup.js && node --check extension/chrome/offscreen.js && node --check extension/chrome/sandbox.js && node --check extension/chrome/permission.js && node --check demo/app.js && node --check demo/session.js && node --check demo/workflow.js && node --check demo/research.js && node --check demo/feedback-page.js && node --check demo/admin.js && node --check worker/index.js && node --check worker/validation.js",
+    "prepublishOnly": "npm run check && npm run build",
+    "test": "node --test tests/*.test.js"
+  },
   "keywords": [
     "eye-tracking",
-    "focus-detection",
     "mediapipe",
     "privacy-first",
     "productivity",
-    "ai-coach"
+    "computer-vision",
+    "browser",
+    "ear",
+    "blink-detection",
+    "study-rhythm"
   ],
-  "author": "Anna Xu",
-  "license": "MIT"
+  "author": "Xiyue Xu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiyuexu-1013/LearnFit.git"
+  },
+  "homepage": "https://github.com/xiyuexu-1013/LearnFit#readme",
+  "bugs": {
+    "url": "https://github.com/xiyuexu-1013/LearnFit/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "esbuild": "^0.25.0",
+    "qrcode": "^1.5.4",
+    "vite": "^7.0.0",
+    "wrangler": "4.134.0"
+  },
+  "dependencies": {
+    "@fontsource/instrument-serif": "^5.2.8",
+    "@mediapipe/face_mesh": "0.4.1633559619"
+  }
 }

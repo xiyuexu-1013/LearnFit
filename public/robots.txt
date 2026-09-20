@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://learnfit.pages.dev/sitemap.xml
