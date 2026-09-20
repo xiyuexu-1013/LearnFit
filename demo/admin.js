@@ -55,7 +55,7 @@ async function load() {
     renderBars($('source-list'), data.sources, 'source', 'completed');
     $('responses').replaceChildren(...data.recent.map((response) => {
       const card = element('article', 'feedback-card');
-      card.append(element('small', '', `${new Date(`${response.created_at}Z`).toLocaleString()} · ${response.source} · ${Math.round(response.duration_seconds / 60)} min · score ${response.score ?? '—'}`), element('h3', '', response.most_useful), element('p', '', response.confusing), element('span', '', `Ease ${response.ease}/5 · Useful ${response.usefulness}/5 · Clear ${response.trust}/5 · Again: ${response.would_use}`));
+      card.append(element('small', '', `${new Date(`${response.created_at}Z`).toLocaleString()} · ${response.source} · ${Math.round(response.duration_seconds / 60)} min · score ${response.score ?? '—'}`), element('h3', '', response.most_useful || 'No written highlight.'), element('p', '', response.confusing || 'No written improvement note.'), element('span', '', `Ease ${response.ease}/5 · Useful ${response.usefulness}/5 · Clear ${response.trust}/5 · Again: ${response.would_use}`));
       return card;
     }));
   } catch (error) {

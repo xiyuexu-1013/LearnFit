@@ -37,7 +37,7 @@ LearnFit estimates changes in study rhythm from observable eye behavior. It does
 
 ## Privacy
 
-Camera frames are processed on-device, never uploaded or recorded. Live measurements and reports are held in page memory, cleared by closing or refreshing the page. Users may explicitly save up to 10 task summaries and subjective reflections in localStorage; no eye measurements or video are saved, and the home screen offers deletion. No account is required and there are no third-party analytics trackers. Basic start/completion totals contain no identifier. Detailed session data and the optional five-minute evaluation are sent only after explicit consent. Exported reports are saved only through the browser print flow. MediaPipe runtime files are served from the same LearnFit site; frames and session measurements never leave the page. Charts are rendered locally without an external chart dependency.
+Camera frames are processed on-device, never uploaded or recorded. Live measurements and reports are held in page memory, cleared by closing or refreshing the page. Users may explicitly save up to 10 task summaries and subjective reflections in localStorage; no eye measurements or video are saved, and the home screen offers deletion. No account is required and there are no third-party analytics trackers. Basic start/completion totals contain no identifier. Detailed session data and the optional two-minute evaluation are sent only after explicit consent. Exported reports are saved only through the browser print flow. MediaPipe runtime files are served from the same LearnFit site; frames and session measurements never leave the page. Charts are rendered locally without an external chart dependency.
 
 The optional Chrome extension stores its session state in `chrome.storage.local` and runs the camera tracker in an offscreen extension document. A user-started session can therefore continue while ordinary Chrome tabs change or close. Ending the session releases the camera.
 
@@ -52,7 +52,7 @@ npm run build:pages
 npm run build:extension
 ```
 
-The public site is deployed on the free Cloudflare Pages address <https://learnfit.pages.dev/>. `npm run build:pages` prepares the static site and its Pages Function. The function forwards only `/api/*` requests to the Cloudflare Worker that owns the D1 research database.
+The public site is deployed on the free Cloudflare Pages address <https://learnfit.pages.dev/>. `npm run build:pages` prepares the static site and a same-origin Pages Function. The Pages Function handles `/api/*` directly through its D1 binding, so anonymous evaluation forms never depend on a separate `workers.dev` origin.
 
 The package metadata is now `@learnfit/core`; this does not publish a new package. Source imports and public SDK classes remain available. Build output is `dist/index.js`.
 

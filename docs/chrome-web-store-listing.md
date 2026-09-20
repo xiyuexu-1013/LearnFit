@@ -16,7 +16,7 @@ Start a session, complete a short personal baseline, and LearnFit shows three cl
 
 LearnFit processes camera frames locally with MediaPipe FaceMesh. Frames and eye landmarks are never uploaded or recorded. The extension continues the user-started analysis when ordinary Chrome tabs change or close. You can pause or end the session at any time; ending releases the camera.
 
-After a session, LearnFit opens an optional five-minute research survey. Nothing is submitted until the user explicitly consents and chooses Send. Anonymous survey data may include ratings, written feedback, session duration, final summary score, product version, and a random browser ID. It never includes camera frames, eye measurements, browsing history, task text, or saved reflections.
+After a session, LearnFit opens an optional two-minute research survey. Nothing is submitted until the user explicitly consents and chooses Send. Anonymous survey data may include ratings, written feedback, session duration, final summary score, product version, and a random browser ID. It never includes camera frames, eye measurements, browsing history, task text, or saved reflections.
 
 For basic usage measurement, the extension adds one to aggregate start and completion totals. These requests contain only the product source and event type; LearnFit does not attach or store an identifier, score, duration, browsing activity, or camera measurement.
 

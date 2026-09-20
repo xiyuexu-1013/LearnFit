@@ -38,6 +38,6 @@ export function validateFeedback(body) {
   const mostUseful = text(body.mostUseful, 600);
   const confusing = text(body.confusing, 600);
   if (!Number.isInteger(ease) || !Number.isInteger(usefulness) || !Number.isInteger(trust)) throw new Error('Ratings must be whole numbers from 1 to 5.');
-  if (!WOULD_USE.has(body.wouldUse) || !mostUseful || !confusing || body.consent !== true) throw new Error('Complete the required questions and consent before submitting.');
+  if (!WOULD_USE.has(body.wouldUse) || body.consent !== true) throw new Error('Complete the required questions and consent before submitting.');
   return { ...common, ease, usefulness, trust, wouldUse: body.wouldUse, mostUseful, confusing };
 }

@@ -14,7 +14,7 @@ const DEFAULT_SESSION = {
 };
 
 let creatingOffscreen;
-const FEEDBACK_URL = 'https://learnfit.digitaliliad.workers.dev/feedback';
+const FEEDBACK_URL = 'https://learnfit.pages.dev/feedback';
 
 function feedbackUrl(session) {
   const params = new URLSearchParams({

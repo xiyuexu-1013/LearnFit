@@ -133,7 +133,7 @@ To keep a user-started session running after the LearnFit page was closed or the
 
 With this design, normal Chrome tabs can change or close without ending the LearnFit session. Pausing stops the study clock, and ending releases the camera. The extension still follows Chrome's lifecycle and permissions; it does not secretly keep running after the entire browser is quit.
 
-I also added an optional five-minute evaluation and a research dashboard for real-user testing. I separated two kinds of evidence:
+I also added an optional two-minute evaluation and a research dashboard for real-user testing. I separated two kinds of evidence:
 
 - Start and completion events add to daily totals without storing a person or session identifier.
 - Duration, final score, and survey answers are submitted only after explicit consent.
@@ -161,7 +161,7 @@ flowchart TB
 
 ## September 20, 2026 — Publishing and documenting the project
 
-I published the redesigned app on the free Cloudflare Pages address: <https://learnfit.pages.dev/>. A Pages Function forwards only `/api/*` requests to the existing Cloudflare Worker, allowing the public site, anonymous totals, and optional feedback system to work together.
+I published the redesigned app on the free Cloudflare Pages address: <https://learnfit.pages.dev/>. The same-origin Pages Function now handles `/api/*` directly through a D1 binding, allowing the public site, anonymous totals, and optional feedback system to work without a separate Worker deployment.
 
 I completed the favicon and application icon set, privacy policy, Chrome Web Store materials, testing instructions, recruitment posters, and scannable QR codes. I moved the original Python prototype into `legacy/` instead of deleting it, so the path from the first research code to the current browser product remains documented.
 

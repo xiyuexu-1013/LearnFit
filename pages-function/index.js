@@ -5,6 +5,18 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
 });
 
+function withSecurityHeaders(response, pathname) {
+  const headers = new Headers(response.headers);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  headers.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+  headers.set('X-Frame-Options', 'SAMEORIGIN');
+  headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'");
+  if (pathname.startsWith('/vendor/')) headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  if (pathname.startsWith('/brand/')) headers.set('Cache-Control', 'public, max-age=86400');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 function safeEqual(a = '', b = '') {
   if (!a || !b || a.length !== b.length) return false;
   let result = 0;
@@ -26,7 +38,7 @@ async function readBody(request) {
   return JSON.parse(raw);
 }
 
-function sameOrigin(request) {
+export function sameOrigin(request) {
   const origin = request.headers.get('Origin');
   if (!origin) return true;
   const url = new URL(request.url);
@@ -77,6 +89,14 @@ async function recordFeedback(request, env) {
   return json({ ok: true }, 201);
 }
 
+async function pruneOldResearchData(env) {
+  await env.DB.batch([
+    env.DB.prepare(`DELETE FROM feedback WHERE created_at < datetime('now','-12 months')`),
+    env.DB.prepare(`DELETE FROM events WHERE created_at < datetime('now','-12 months')`),
+    env.DB.prepare(`DELETE FROM daily_usage WHERE day < date('now','-12 months')`),
+  ]);
+}
+
 async function summary(env) {
   const [people, detailedEvents, usage, ratings, sources, daily, recent] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(DISTINCT anon_id) AS count FROM (SELECT anon_id FROM events UNION ALL SELECT anon_id FROM feedback)`).first(),
@@ -107,30 +127,27 @@ async function exportCsv(env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     try {
       if (url.pathname === '/api/health') return json({ ok: true });
       if (url.pathname === '/api/usage' && request.method === 'POST') return await recordUsage(request, env);
       if (url.pathname === '/api/events' && request.method === 'POST') return await recordEvent(request, env);
-      if (url.pathname === '/api/feedback' && request.method === 'POST') return await recordFeedback(request, env);
+      if (url.pathname === '/api/feedback' && request.method === 'POST') {
+        const response = await recordFeedback(request, env);
+        ctx.waitUntil(pruneOldResearchData(env));
+        return response;
+      }
       if (url.pathname.startsWith('/api/admin/')) {
         if (!isAdmin(request, env)) return json({ error: 'Admin key required.' }, 401);
         if (url.pathname === '/api/admin/summary' && request.method === 'GET') return json(await summary(env));
         if (url.pathname === '/api/admin/export.csv' && request.method === 'GET') return exportCsv(env);
       }
       if (url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
-      return env.ASSETS.fetch(request);
+      return withSecurityHeaders(await env.ASSETS.fetch(request), url.pathname);
     } catch (error) {
       const expected = error instanceof SyntaxError || /Invalid|Complete|range|JSON|large/.test(error.message);
       return json({ error: expected ? error.message : 'The research service could not complete the request.' }, expected ? 400 : 500);
     }
-  },
-  async scheduled(_controller, env, ctx) {
-    ctx.waitUntil(env.DB.batch([
-      env.DB.prepare(`DELETE FROM feedback WHERE created_at < datetime('now','-12 months')`),
-      env.DB.prepare(`DELETE FROM events WHERE created_at < datetime('now','-12 months')`),
-      env.DB.prepare(`DELETE FROM daily_usage WHERE day < date('now','-12 months')`),
-    ]));
   },
 };

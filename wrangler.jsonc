@@ -1,17 +1,8 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "learnfit",
-  "main": "./worker/index.js",
+  "pages_build_output_dir": "./site-dist",
   "compatibility_date": "2026-09-19",
-  "workers_dev": true,
-  "preview_urls": true,
-  "assets": {
-    "directory": "./site-dist",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*"],
-    "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
-  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -20,9 +11,6 @@
       "migrations_dir": "./migrations"
     }
   ],
-  "triggers": {
-    "crons": ["17 6 * * *"]
-  },
   "observability": {
     "enabled": true
   }
