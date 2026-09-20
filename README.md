@@ -67,6 +67,16 @@ await tracker.start();
 
 See [SDK documentation](docs/api/README.md). `legacy/` remains an unchanged historical archive, not the current application.
 
+## Documentation
+
+- [Documentation index](docs/README.md)
+- [SDK documentation](docs/api/README.md)
+- [Chrome Web Store listing notes](docs/chrome-web-store-listing.md)
+- [Real-user testing protocol](docs/user-testing-protocol.md)
+- [Research data documentation](docs/research/README.md)
+- [Third-party tools and licenses](THIRD_PARTY_NOTICES.md)
+- [Full development journal with visual evidence](CHANGELOG.md)
+
 ## License
 
 [MIT](LICENSE)

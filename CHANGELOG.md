@@ -11,7 +11,7 @@ flowchart LR
     C --> D["Browser engine + extension MVP<br/>Aug 7"]
     D --> E["Honest scoring + product redesign<br/>Sep 18"]
     E --> F["Background extension + user research<br/>Sep 19"]
-    F --> G["Public deployment + competition evidence<br/>Sep 20"]
+    F --> G["Public deployment + user testing<br/>Sep 20"]
 ```
 
 The screenshots below come from my own development and testing environment. They show real intermediate versions, including interfaces and terminology that I later changed.
@@ -138,7 +138,7 @@ I also added an optional five-minute evaluation and a research dashboard for rea
 - Start and completion events add to daily totals without storing a person or session identifier.
 - Duration, final score, and survey answers are submitted only after explicit consent.
 
-Camera frames, facial landmarks, raw EAR measurements, task text, browsing history, and locally saved reflections are not uploaded. The dashboard summarizes anonymous use and feedback and can export CSV evidence for student innovation competitions.
+Camera frames, facial landmarks, raw EAR measurements, task text, browsing history, and locally saved reflections are not uploaded. The dashboard summarizes anonymous use and feedback and can export CSV data for product evaluation.
 
 ```mermaid
 flowchart TB
@@ -163,7 +163,7 @@ flowchart TB
 
 I published the redesigned app on the free Cloudflare Pages address: <https://learnfit.pages.dev/>. A Pages Function forwards only `/api/*` requests to the existing Cloudflare Worker, allowing the public site, anonymous totals, and optional feedback system to work together.
 
-I completed the favicon and application icon set, privacy policy, Chrome Web Store materials, Congressional App Challenge notes, testing instructions, recruitment posters, and scannable QR codes. I moved the original Python prototype into `legacy/` instead of deleting it, so reviewers can inspect the path from the first research code to the current browser product.
+I completed the favicon and application icon set, privacy policy, Chrome Web Store materials, testing instructions, recruitment posters, and scannable QR codes. I moved the original Python prototype into `legacy/` instead of deleting it, so the path from the first research code to the current browser product remains documented.
 
 ## What changed in my technical thinking
 
