@@ -133,6 +133,8 @@ function updateClock() {
 async function start() {
   if (!['ready', 'report'].includes(phase)) return;
   setError();
+  closeSurvey();
+  resetSurveyForm();
   const generation = ++startGeneration;
   isExample = false;
   sessionId = crypto.randomUUID();
@@ -202,6 +204,7 @@ async function stop() {
   renderReport();
   showPhase('report');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  openSurvey();
 }
 
 function renderReport() {
@@ -209,7 +212,7 @@ function renderReport() {
   latestReport = report;
   $('example-banner').hidden = !isExample;
   $('reflection').hidden = isExample;
-  $('research-survey').hidden = isExample;
+  $('open-survey').hidden = isExample;
   $('report-task').textContent = sessionTask ? `Task: ${sessionTask}` : '';
   $('report-date').textContent = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeStyle: 'short' }).format(new Date());
   const stats = [
@@ -239,7 +242,7 @@ function renderReport() {
 }
 
 $('start').addEventListener('click', start);
-$('new-session').addEventListener('click', () => { showPhase('ready'); window.scrollTo({ top: 0, behavior: 'smooth' }); $('start').focus(); });
+$('new-session').addEventListener('click', () => { closeSurvey(); showPhase('ready'); window.scrollTo({ top: 0, behavior: 'smooth' }); $('start').focus(); });
 $('stop').addEventListener('click', stop);
 $('session-nav').addEventListener('click', () => { if (phase === 'report') showPhase('ready'); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 $('export').addEventListener('click', () => window.print());
@@ -254,6 +257,33 @@ $('preview-toggle').addEventListener('click', () => {
 for (const button of document.querySelectorAll('[data-how]')) button.addEventListener('click', () => $('how-dialog').showModal());
 for (const id of ['close-how', 'got-it']) $(id).addEventListener('click', () => $('how-dialog').close());
 $('how-dialog').addEventListener('click', (event) => { if (event.target === $('how-dialog')) { const rect = $('how-dialog').getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) $('how-dialog').close(); } });
+
+function openSurvey() {
+  if (isExample || !latestReport || $('research-survey-dialog').open) return;
+  $('research-survey-dialog').showModal();
+}
+
+function closeSurvey() {
+  if ($('research-survey-dialog').open) $('research-survey-dialog').close();
+}
+
+function resetSurveyForm() {
+  const form = $('survey-form');
+  form.reset();
+  for (const control of form.elements) control.disabled = false;
+  form.querySelector('button[type="submit"]').textContent = 'Send anonymous feedback';
+  $('skip-survey').textContent = 'Not now';
+  $('open-survey').textContent = 'Give 2-minute feedback';
+  $('survey-status').textContent = '';
+}
+
+$('open-survey').addEventListener('click', openSurvey);
+for (const id of ['close-survey', 'skip-survey']) $(id).addEventListener('click', closeSurvey);
+$('research-survey-dialog').addEventListener('click', (event) => {
+  if (event.target !== $('research-survey-dialog')) return;
+  const rect = event.target.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeSurvey();
+});
 window.addEventListener('pagehide', () => { startGeneration += 1; clearInterval(tick); tracker?.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) { showPhase('ready'); $('start').disabled = false; $('start').textContent = 'Start Focus Session →'; } });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseSession(); });
@@ -315,7 +345,11 @@ $('survey-form').addEventListener('submit', async (event) => {
     $('research-consent').checked = true;
     setResearchConsent(true);
     $('survey-status').textContent = 'Thank you. Your anonymous response was recorded.';
+    submit.textContent = 'Feedback sent ✓';
+    $('skip-survey').textContent = 'Close';
+    $('open-survey').textContent = 'Feedback sent ✓';
     for (const control of form.elements) control.disabled = true;
+    $('skip-survey').disabled = false;
   } catch (error) {
     $('survey-status').textContent = error.message;
     submit.disabled = false;
