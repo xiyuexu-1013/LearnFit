@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LearnFit Focus Rhythm",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minimum_chrome_version": "116",
   "description": "On-device study rhythm tracking with optional anonymous real-user feedback.",
   "permissions": [

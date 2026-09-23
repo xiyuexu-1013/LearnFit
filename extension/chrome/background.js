@@ -15,6 +15,17 @@ const DEFAULT_SESSION = {
 
 let creatingOffscreen;
 const FEEDBACK_URL = 'https://learnfit.pages.dev/feedback';
+const USAGE_URL = 'https://learnfit.pages.dev/api/usage';
+
+async function postAggregateUsage(eventType, durationSeconds = 0) {
+  const response = await fetch(USAGE_URL, {
+    method: 'POST',
+    credentials: 'omit',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: 'extension', eventType, durationSeconds }),
+  });
+  if (!response.ok) throw new Error('Anonymous usage total could not be updated.');
+}
 
 function feedbackUrl(session) {
   const params = new URLSearchParams({
@@ -86,6 +97,7 @@ async function startSession() {
   await saveSession({ ...DEFAULT_SESSION, sessionId: crypto.randomUUID(), running: true, phase: 'starting', status: 'Starting private tracking…' });
   try {
     await sendToTracker('LEARNFIT_TRACKER_START');
+    postAggregateUsage('started').catch(() => {});
     return getSession();
   } catch (error) {
     return saveSession({ ...DEFAULT_SESSION, phase: 'error', status: 'Camera tracking could not start', error: error.message });
@@ -123,6 +135,7 @@ async function resumeSession() {
 
 async function stopSession() {
   const session = await getSession();
+  if (!session.running) return session;
   const now = Date.now();
   const completed = await saveSession({
     ...session,
@@ -137,6 +150,7 @@ async function stopSession() {
     await chrome.runtime.sendMessage({ type: 'LEARNFIT_TRACKER_STOP', target: 'offscreen' }).catch(() => {});
     await chrome.offscreen.closeDocument().catch(() => {});
   }
+  postAggregateUsage('completed', Math.max(0, Math.round(completed.elapsedMs / 1000))).catch(() => {});
   await openFeedback(completed).catch(() => {});
   return completed;
 }

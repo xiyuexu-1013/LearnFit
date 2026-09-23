@@ -13,7 +13,8 @@ const number = (value, min, max, nullable = false) => {
 
 export function validateUsage(body) {
   if (!SOURCES.has(body.source) || !EVENT_TYPES.has(body.eventType)) throw new Error('Invalid aggregate usage event.');
-  return { source: body.source, eventType: body.eventType };
+  const durationSeconds = Math.round(number(body.durationSeconds ?? 0, 0, 86400));
+  return { source: body.source, eventType: body.eventType, durationSeconds: body.eventType === 'completed' ? durationSeconds : 0 };
 }
 
 export function validateEvent(body) {

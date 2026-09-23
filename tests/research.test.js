@@ -13,9 +13,11 @@ test('accepts a minimal anonymous session event', () => {
   assert.deepEqual(validateEvent({ ...base, eventType: 'completed' }), { ...base, eventType: 'completed' });
 });
 
-test('aggregate usage accepts only source and event type', () => {
-  assert.deepEqual(validateUsage({ source: 'extension', eventType: 'started', extra: 'ignored' }), { source: 'extension', eventType: 'started' });
+test('aggregate usage accepts a duration only for completed sessions', () => {
+  assert.deepEqual(validateUsage({ source: 'extension', eventType: 'started', durationSeconds: 125, extra: 'ignored' }), { source: 'extension', eventType: 'started', durationSeconds: 0 });
+  assert.deepEqual(validateUsage({ source: 'web', eventType: 'completed', durationSeconds: 125 }), { source: 'web', eventType: 'completed', durationSeconds: 125 });
   assert.throws(() => validateUsage({ source: 'unknown', eventType: 'started' }));
+  assert.throws(() => validateUsage({ source: 'web', eventType: 'completed', durationSeconds: 86401 }));
 });
 
 test('rejects identifiers and values outside the research schema', () => {

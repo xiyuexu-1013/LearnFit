@@ -18,7 +18,7 @@ LearnFit processes camera frames locally with MediaPipe FaceMesh. Frames and eye
 
 After a session, LearnFit opens an optional two-minute research survey. Nothing is submitted until the user explicitly consents and chooses Send. Anonymous survey data may include ratings, written feedback, session duration, final summary score, product version, and a random browser ID. It never includes camera frames, eye measurements, browsing history, task text, or saved reflections.
 
-For basic usage measurement, the extension adds one to aggregate start and completion totals. These requests contain only the product source and event type; LearnFit does not attach or store an identifier, score, duration, browsing activity, or camera measurement.
+For basic usage measurement, the extension adds one to aggregate start and completion totals. When a session finishes, its study time is added to a combined daily total. These requests contain only the product source, event type, and completed-session length; LearnFit does not attach or store an identifier, score, browsing activity, camera measurement, or a row for an individual session.
 
 The rhythm score is a rule-based summary of blink frequency, completed blink duration, and eye openness. It is not a measure of attention, intelligence, health, or academic ability.
 
@@ -45,7 +45,7 @@ Stores lightweight session controls and results locally on the device: running s
 - Location: not collected.
 - Web history or website content: not collected.
 - User activity: camera frames and derived eye measurements are processed locally only; frames and landmarks are not retained or transmitted. A user may separately choose to submit anonymous session duration and final score in the post-session survey.
-- Analytics: first-party aggregate start/completion counts without identifiers, plus optional consent-based detailed evaluation. Advertising, sale, and third-party analytics: none.
+- Analytics: first-party aggregate start/completion counts and combined study time without identifiers, plus optional consent-based detailed evaluation. Advertising, sale, and third-party analytics: none.
 
 Privacy policy: https://learnfit.pages.dev/privacy.html
 

@@ -237,7 +237,7 @@ function renderReport() {
     'Use the report alongside your own experience. Adjust your study plan based on what helps you learn.',
   ];
   $('recommendations').replaceChildren(...recommendations.map((text) => { const li = document.createElement('li'); li.textContent = text; return li; }));
-  if (!isExample) postAggregateUsage({ source: 'web', eventType: 'completed' }).catch(() => {});
+  if (!isExample) postAggregateUsage({ source: 'web', eventType: 'completed', durationSeconds: seconds }).catch(() => {});
   if (!isExample && researchEnabled) postResearchEvent({ sessionId, source: 'web', eventType: 'completed', durationSeconds: seconds, score: report.averageScore }).catch(() => {});
 }
 

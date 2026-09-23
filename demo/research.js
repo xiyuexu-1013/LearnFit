@@ -1,6 +1,6 @@
 export const RESEARCH_CONSENT_KEY = 'learnfitResearchConsent';
 export const ANONYMOUS_ID_KEY = 'learnfitAnonymousId';
-export const PRODUCT_VERSION = 'web-0.7';
+export const PRODUCT_VERSION = 'web-0.8';
 
 export function getAnonymousId(storage = localStorage) {
   let id = storage.getItem(ANONYMOUS_ID_KEY);
@@ -38,8 +38,8 @@ export function postResearchEvent({ sessionId, source, eventType, durationSecond
   });
 }
 
-export function postAggregateUsage({ source, eventType }) {
-  return postJson('/api/usage', { source, eventType });
+export function postAggregateUsage({ source, eventType, durationSeconds = 0 }) {
+  return postJson('/api/usage', { source, eventType, durationSeconds });
 }
 
 export function submitResearchFeedback({ sessionId, source, durationSeconds, score, appVersion, ease, usefulness, trust, wouldUse, mostUseful, confusing, consent }) {

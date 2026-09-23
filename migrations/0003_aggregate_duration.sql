@@ -1,0 +1,2 @@
+ALTER TABLE daily_usage ADD COLUMN duration_seconds INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE daily_usage ADD COLUMN duration_count INTEGER NOT NULL DEFAULT 0;

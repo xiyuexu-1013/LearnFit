@@ -135,7 +135,7 @@ With this design, normal Chrome tabs can change or close without ending the Lear
 
 I also added an optional two-minute evaluation and a research dashboard for real-user testing. I separated two kinds of evidence:
 
-- Start and completion events add to daily totals without storing a person or session identifier.
+- Start and completion events add to daily totals without storing a person or session identifier; completed study time is summed into the same daily aggregate.
 - Duration, final score, and survey answers are submitted only after explicit consent.
 
 Camera frames, facial landmarks, raw EAR measurements, task text, browsing history, and locally saved reflections are not uploaded. The dashboard summarizes anonymous use and feedback and can export CSV data for product evaluation.
