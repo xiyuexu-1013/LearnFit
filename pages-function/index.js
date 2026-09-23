@@ -5,6 +5,22 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
 });
 
+function extensionOrigin(request) {
+  const origin = request.headers.get('Origin') || '';
+  return /^chrome-extension:\/\/[a-p]{32}$/.test(origin) ? origin : '';
+}
+
+function withUsageCors(response, origin) {
+  if (!origin) return response;
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', origin);
+  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  headers.set('Access-Control-Max-Age', '86400');
+  headers.append('Vary', 'Origin');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 function withSecurityHeaders(response, pathname) {
   const headers = new Headers(response.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
@@ -46,8 +62,7 @@ export function sameOrigin(request) {
 }
 
 async function recordUsage(request, env) {
-  const origin = request.headers.get('Origin') || '';
-  if (!sameOrigin(request) && !origin.startsWith('chrome-extension://')) return json({ error: 'Cross-site submissions are not accepted.' }, 403);
+  if (!sameOrigin(request) && !extensionOrigin(request)) return json({ error: 'Cross-site submissions are not accepted.' }, 403);
   const usage = validateUsage(await readBody(request));
   await env.DB.prepare(`INSERT INTO daily_usage (day, source, event_type, event_count, duration_seconds, duration_count)
     VALUES (date('now'), ?, ?, 1, ?, ?)
@@ -136,9 +151,15 @@ async function exportCsv(env) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const usageCorsOrigin = url.pathname === '/api/usage' ? extensionOrigin(request) : '';
     try {
       if (url.pathname === '/api/health') return json({ ok: true });
-      if (url.pathname === '/api/usage' && request.method === 'POST') return await recordUsage(request, env);
+      if (url.pathname === '/api/usage' && request.method === 'OPTIONS') {
+        return usageCorsOrigin
+          ? withUsageCors(new Response(null, { status: 204 }), usageCorsOrigin)
+          : json({ error: 'Cross-site submissions are not accepted.' }, 403);
+      }
+      if (url.pathname === '/api/usage' && request.method === 'POST') return withUsageCors(await recordUsage(request, env), usageCorsOrigin);
       if (url.pathname === '/api/events' && request.method === 'POST') return await recordEvent(request, env);
       if (url.pathname === '/api/feedback' && request.method === 'POST') {
         const response = await recordFeedback(request, env);
@@ -154,7 +175,7 @@ export default {
       return withSecurityHeaders(await env.ASSETS.fetch(request), url.pathname);
     } catch (error) {
       const expected = error instanceof SyntaxError || /Invalid|Complete|range|JSON|large/.test(error.message);
-      return json({ error: expected ? error.message : 'The research service could not complete the request.' }, expected ? 400 : 500);
+      return withUsageCors(json({ error: expected ? error.message : 'The research service could not complete the request.' }, expected ? 400 : 500), usageCorsOrigin);
     }
   },
 };

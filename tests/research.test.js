@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateEvent, validateFeedback, validateUsage } from '../pages-function/validation.js';
-import { sameOrigin } from '../pages-function/index.js';
+import worker, { sameOrigin } from '../pages-function/index.js';
 
 const base = {
   anonymousId: '11111111-1111-4111-8111-111111111111',
@@ -38,4 +38,25 @@ test('requires explicit consent and complete quantitative feedback', () => {
 test('accepts same-origin Pages requests and rejects unrelated sites', () => {
   assert.equal(sameOrigin(new Request('https://learnfit.pages.dev/api/feedback', { headers: { Origin: 'https://learnfit.pages.dev' } })), true);
   assert.equal(sameOrigin(new Request('https://learnfit.pages.dev/api/feedback', { headers: { Origin: 'https://example.com' } })), false);
+});
+
+test('answers Chrome extension usage preflights with restricted CORS headers', async () => {
+  const origin = 'chrome-extension://mhpdljhlapkmlncihnpmbchppjnplloo';
+  const response = await worker.fetch(new Request('https://learnfit.pages.dev/api/usage', {
+    method: 'OPTIONS',
+    headers: {
+      Origin: origin,
+      'Access-Control-Request-Method': 'POST',
+      'Access-Control-Request-Headers': 'content-type',
+    },
+  }), {}, {});
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
+  assert.equal(response.headers.get('Access-Control-Allow-Methods'), 'POST, OPTIONS');
+
+  const rejected = await worker.fetch(new Request('https://learnfit.pages.dev/api/usage', {
+    method: 'OPTIONS', headers: { Origin: 'https://example.com' },
+  }), {}, {});
+  assert.equal(rejected.status, 403);
+  assert.equal(rejected.headers.get('Access-Control-Allow-Origin'), null);
 });

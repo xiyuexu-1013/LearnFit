@@ -97,7 +97,7 @@ async function startSession() {
   await saveSession({ ...DEFAULT_SESSION, sessionId: crypto.randomUUID(), running: true, phase: 'starting', status: 'Starting private tracking…' });
   try {
     await sendToTracker('LEARNFIT_TRACKER_START');
-    postAggregateUsage('started').catch(() => {});
+    await postAggregateUsage('started').catch(() => {});
     return getSession();
   } catch (error) {
     return saveSession({ ...DEFAULT_SESSION, phase: 'error', status: 'Camera tracking could not start', error: error.message });
@@ -150,7 +150,7 @@ async function stopSession() {
     await chrome.runtime.sendMessage({ type: 'LEARNFIT_TRACKER_STOP', target: 'offscreen' }).catch(() => {});
     await chrome.offscreen.closeDocument().catch(() => {});
   }
-  postAggregateUsage('completed', Math.max(0, Math.round(completed.elapsedMs / 1000))).catch(() => {});
+  await postAggregateUsage('completed', Math.max(0, Math.round(completed.elapsedMs / 1000))).catch(() => {});
   await openFeedback(completed).catch(() => {});
   return completed;
 }
