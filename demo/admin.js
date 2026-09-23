@@ -29,7 +29,9 @@ function renderBars(target, rows, labelKey, valueKey, formatValue = String) {
 }
 
 function formatDuration(seconds) {
-  const minutes = Math.round(Number(seconds || 0) / 60);
+  const totalSeconds = Math.round(Number(seconds || 0));
+  if (totalSeconds > 0 && totalSeconds < 60) return `${totalSeconds} sec`;
+  const minutes = Math.round(totalSeconds / 60);
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   return `${hours}h ${minutes % 60}m`;
