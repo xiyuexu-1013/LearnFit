@@ -4,6 +4,7 @@ import { FaceTracker } from '../src/core/tracker.js';
 import { formatTime, renderChart, summarize } from './session.js';
 import { readReflections, saveReflection, clearReflections } from './workflow.js';
 import { buildRatingControls, getResearchConsent, postAggregateUsage, postResearchEvent, setResearchConsent, submitResearchFeedback, PRODUCT_VERSION } from './research.js';
+import { buildSessionCsv, buildSessionReportHtml, reportBaseName } from './report-export.js';
 
 const $ = (id) => document.getElementById(id);
 let phase = 'ready';
@@ -25,6 +26,8 @@ let sessionId = '';
 let isExample = false;
 let startGeneration = 0;
 let latestReport = null;
+let reportCreatedAt = null;
+let reportRecommendations = [];
 let researchEnabled = false;
 
 function showPhase(next) {
@@ -210,11 +213,12 @@ async function stop() {
 function renderReport() {
   const report = summarize(samples, seconds);
   latestReport = report;
+  reportCreatedAt = new Date();
   $('example-banner').hidden = !isExample;
   $('reflection').hidden = isExample;
   $('open-survey').hidden = isExample;
   $('report-task').textContent = sessionTask ? `Task: ${sessionTask}` : '';
-  $('report-date').textContent = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeStyle: 'short' }).format(new Date());
+  $('report-date').textContent = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeStyle: 'short' }).format(reportCreatedAt);
   const stats = [
     ['Average rhythm score', report.averageScore !== null ? `${report.averageScore} / 100` : 'Not enough data', 'Average of usable post-baseline observations'],
     ['Study time', formatTime(seconds), 'Excludes calibration and paused time'],
@@ -236,6 +240,7 @@ function renderReport() {
     report.quality === null || report.quality < 80 ? 'Try even lighting and a camera positioned at eye level to improve tracking.' : 'Keep a similar camera position and lighting for a more consistent baseline.',
     'Use the report alongside your own experience. Adjust your study plan based on what helps you learn.',
   ];
+  reportRecommendations = recommendations;
   $('recommendations').replaceChildren(...recommendations.map((text) => { const li = document.createElement('li'); li.textContent = text; return li; }));
   if (!isExample) postAggregateUsage({ source: 'web', eventType: 'completed', durationSeconds: seconds }).catch(() => {});
   if (!isExample && researchEnabled) postResearchEvent({ sessionId, source: 'web', eventType: 'completed', durationSeconds: seconds, score: report.averageScore }).catch(() => {});
@@ -246,6 +251,26 @@ $('new-session').addEventListener('click', () => { closeSurvey(); showPhase('rea
 $('stop').addEventListener('click', stop);
 $('session-nav').addEventListener('click', () => { if (phase === 'report') showPhase('ready'); window.scrollTo({ top: 0, behavior: 'smooth' }); });
 $('export').addEventListener('click', () => window.print());
+
+function downloadText(filename, content, type) {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$('download-csv').addEventListener('click', () => {
+  if (!latestReport || !reportCreatedAt) return;
+  downloadText(`${reportBaseName(reportCreatedAt)}-data.csv`, buildSessionCsv({ samples }), 'text/csv;charset=utf-8');
+});
+
+$('download-report').addEventListener('click', () => {
+  if (!latestReport || !reportCreatedAt) return;
+  downloadText(`${reportBaseName(reportCreatedAt)}-report.html`, buildSessionReportHtml({
+    createdAt: reportCreatedAt, task: sessionTask, durationSeconds: seconds, report: latestReport,
+    recommendations: reportRecommendations, samples, example: isExample,
+  }), 'text/html;charset=utf-8');
+});
 $('preview-toggle').addEventListener('click', () => {
   previewHidden = !previewHidden;
   $('video-frame').classList.toggle('preview-hidden', previewHidden);

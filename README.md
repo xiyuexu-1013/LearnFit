@@ -13,7 +13,7 @@ npm run dev
 
 Open `/` on the local server. The former `/demo/index.html` and `/demo/eye-score.html` routes also lead to the redesigned app. Camera access requires HTTPS or localhost. The tracking runtime is packaged with the site.
 
-Choose **Start Focus Session**, allow camera access, and look naturally at your screen for 30 seconds of usable tracking. Calibration pauses when a face is not detected. Study time starts after calibration. End the session to view a summary, then choose **Export PDF** and **Save as PDF** in your browser’s print dialog.
+Choose **Start Focus Session**, allow camera access, and look naturally at your screen for 30 seconds of usable tracking. Calibration pauses when a face is not detected. Study time starts after calibration. End the session to view a summary, download its one-second observations as CSV, save a standalone HTML report, or print the page to PDF.
 
 ## Product behavior
 
@@ -22,6 +22,7 @@ Choose **Start Focus Session**, allow camera access, and look naturally at your 
 - An actual 60-second trend uses one-second observations and shows gaps when tracking is unavailable.
 - Blink frequency, completed blink duration, EAR, and component scores appear under Live Details.
 - Reports use real session observations. No percentile rankings or fabricated measurements.
+- Session exports include a local CSV time series and a standalone report with the summary, signal trace, and study recommendations.
 - The most stable period requires at least 10 consecutive seconds at an index of 75 or higher. A shift requires at least 10 seconds below 75. These are reporting heuristics, not validated scientific cutoffs.
 - Duration suggestions require sufficient usable data and an observed sustained shift after at least five minutes. Otherwise the report asks you to choose your pace.
 
@@ -37,7 +38,7 @@ LearnFit estimates changes in study rhythm from observable eye behavior. It does
 
 ## Privacy
 
-Camera frames are processed on-device, never uploaded or recorded. Live measurements and reports are held in page memory, cleared by closing or refreshing the page. Users may explicitly save up to 10 task summaries and subjective reflections in localStorage; no eye measurements or video are saved, and the home screen offers deletion. No account is required and there are no third-party analytics trackers. Basic start/completion totals contain no identifier. Detailed session data and the optional two-minute evaluation are sent only after explicit consent. Exported reports are saved only through the browser print flow. MediaPipe runtime files are served from the same LearnFit site; frames and session measurements never leave the page. Charts are rendered locally without an external chart dependency.
+Camera frames are processed on-device, never uploaded or recorded. Live measurements and reports are held in page memory, cleared by closing or refreshing the page. Users may explicitly save up to 10 task summaries and subjective reflections in localStorage; no eye measurements or video are saved, and the home screen offers deletion. No account is required and there are no third-party analytics trackers. Basic start/completion totals contain no identifier. Detailed session data and the optional two-minute evaluation are sent only after explicit consent. CSV, HTML, and PDF exports are created locally in the browser. MediaPipe runtime files are served from the same LearnFit site; frames and session measurements never leave the page. Charts are rendered locally without an external chart dependency.
 
 The optional Chrome extension stores its session state in `chrome.storage.local` and runs the camera tracker in an offscreen extension document. A user-started session can therefore continue while ordinary Chrome tabs change or close. Ending the session releases the camera.
 
