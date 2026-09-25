@@ -10,6 +10,13 @@ test('verified pages are local exact-page matches', () => {
   assert.equal(normalizePage('chrome://extensions'), '');
 });
 
+test('user-confirmed PDF viewer extension pages can be study pages', () => {
+  const pdfUrl = 'chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://drive.usercontent.example/calculus.pdf';
+  const normalized = normalizePage(pdfUrl);
+  assert.equal(normalized, pdfUrl);
+  assert.equal(classifyTaskPage({ id: 12, url: pdfUrl }, [{ tabId: 12, url: normalized, title: 'Calculus PDF' }]), 'study');
+});
+
 test('final focus estimate requires 60 percent signal coverage', () => {
   const session = { verifiedMs: 100_000, validSignalMs: 59_000, scoreTotal: 160, scoreSamples: 2 };
   assert.equal(trackingCoverage(session), 59);

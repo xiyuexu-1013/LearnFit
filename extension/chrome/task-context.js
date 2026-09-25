@@ -1,7 +1,7 @@
 export function normalizePage(url = '') {
   try {
     const parsed = new URL(url);
-    if (!['http:', 'https:', 'file:'].includes(parsed.protocol)) return '';
+    if (!['http:', 'https:', 'file:', 'chrome-extension:'].includes(parsed.protocol)) return '';
     parsed.hash = '';
     return parsed.toString();
   } catch {

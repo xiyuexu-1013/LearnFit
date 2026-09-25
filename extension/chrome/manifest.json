@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LearnFit Task Focus",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "minimum_chrome_version": "116",
   "description": "On-device focus estimates for user-verified, screen-based study pages.",
   "permissions": [
