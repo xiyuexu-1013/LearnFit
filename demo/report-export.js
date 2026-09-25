@@ -58,7 +58,7 @@ export function buildSessionReportHtml({ createdAt, task, durationSeconds, repor
   <header><span class="tag">LEARNFIT · PERSONAL SESSION REPORT</span><h1>Your focus estimate.</h1><p class="meta">${escapeHtml(created.toLocaleString('en'))}${task ? ` · ${escapeHtml(task)}` : ''}</p></header>
   ${example ? '<p class="notice">Example report: this file contains illustrative data, not personal measurements.</p>' : ''}
   <section class="metrics">${cards}</section>
-  <section class="panel"><span class="tag">THE WHOLE SESSION</span><h2>Focus estimate trace</h2>${chartSvg(samples, durationSeconds)}<p class="fine">Gaps mean tracking was unavailable and never count as a low score. Normal blinking is expected. This website estimates focus only while it remains visible beside a screen-based study task; the Chrome extension can also exclude unverified tabs.</p></section>
+  <section class="panel"><span class="tag">THE WHOLE SESSION</span><h2>Focus estimate trace</h2>${chartSvg(samples, durationSeconds)}<p class="fine">Gaps mean tracking was unavailable and never count as a low score. Normal blinking is expected. This website estimates focus only while its page is visible and its browser window is active; switching tabs, changing windows, or minimizing pauses the session. The Chrome extension is required for verified tracking across chosen study tabs.</p></section>
   <section class="panel"><span class="tag">TAKE INTO NEXT TIME</span><h2>Small experiments to try</h2><ul>${items}</ul></section>
   <p class="fine">LearnFit is a reflection tool, not a diagnosis or a measure of intelligence, health, or academic ability. Camera frames and eye measurements were processed on this device and are not included in this report.</p>
   </body></html>`;

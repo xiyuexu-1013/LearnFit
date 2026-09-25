@@ -312,6 +312,7 @@ $('research-survey-dialog').addEventListener('click', (event) => {
 window.addEventListener('pagehide', () => { startGeneration += 1; clearInterval(tick); tracker?.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) { showPhase('ready'); $('start').disabled = false; $('start').textContent = 'Start Focus Session →'; } });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseSession(); });
+window.addEventListener('blur', () => pauseSession());
 
 function pauseSession() {
   if (!['active', 'calibrating'].includes(phase)) return;
