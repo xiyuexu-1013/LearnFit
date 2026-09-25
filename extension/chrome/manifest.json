@@ -1,18 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "LearnFit Focus Rhythm",
-  "version": "1.2.5",
+  "name": "LearnFit Task Focus",
+  "version": "1.3.0",
   "minimum_chrome_version": "116",
-  "description": "On-device study rhythm tracking with optional anonymous real-user feedback.",
+  "description": "On-device focus estimates for user-verified, screen-based study pages.",
   "permissions": [
     "offscreen",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://learnfit.pages.dev/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "icons": {
     "16": "icons/icon-16.png",

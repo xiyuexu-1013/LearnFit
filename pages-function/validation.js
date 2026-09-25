@@ -2,6 +2,7 @@ const ID_PATTERN = /^[A-Za-z0-9-]{8,80}$/;
 const SOURCES = new Set(['web', 'extension']);
 const EVENT_TYPES = new Set(['started', 'completed']);
 const WOULD_USE = new Set(['yes', 'maybe', 'no']);
+const ON_TASK_SHARE = new Set(['all', 'most', 'half', 'little', 'none']);
 
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const number = (value, min, max, nullable = false) => {
@@ -36,9 +37,13 @@ export function validateFeedback(body) {
   const ease = number(body.ease, 1, 5);
   const usefulness = number(body.usefulness, 1, 5);
   const trust = number(body.trust, 1, 5);
+  const selfReportedFocus = number(body.selfReportedFocus, 1, 5);
+  const verifiedSeconds = Math.round(number(body.verifiedSeconds ?? body.durationSeconds ?? 0, 0, 86400));
+  const offTaskSeconds = Math.round(number(body.offTaskSeconds ?? 0, 0, 86400));
+  const trackingCoverage = number(body.trackingCoverage ?? 0, 0, 100);
   const mostUseful = text(body.mostUseful, 600);
   const confusing = text(body.confusing, 600);
-  if (!Number.isInteger(ease) || !Number.isInteger(usefulness) || !Number.isInteger(trust)) throw new Error('Ratings must be whole numbers from 1 to 5.');
-  if (!WOULD_USE.has(body.wouldUse) || body.consent !== true) throw new Error('Complete the required questions and consent before submitting.');
-  return { ...common, ease, usefulness, trust, wouldUse: body.wouldUse, mostUseful, confusing };
+  if (![ease, usefulness, trust, selfReportedFocus].every(Number.isInteger)) throw new Error('Ratings must be whole numbers from 1 to 5.');
+  if (!WOULD_USE.has(body.wouldUse) || !ON_TASK_SHARE.has(body.onTaskShare) || body.consent !== true) throw new Error('Complete the required questions and consent before submitting.');
+  return { ...common, verifiedSeconds, offTaskSeconds, trackingCoverage, ease, usefulness, trust, selfReportedFocus, onTaskShare: body.onTaskShare, wouldUse: body.wouldUse, mostUseful, confusing };
 }

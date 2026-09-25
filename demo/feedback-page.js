@@ -8,7 +8,7 @@ history.replaceState(null, '', '/feedback');
 for (const rating of document.querySelectorAll('.rating')) buildRatingControls(rating);
 
 const score = context.score === null ? 'Not available' : `${Math.round(context.score)} / 100`;
-document.querySelector('#session-context').textContent = `Session: ${formatTime(context.durationSeconds)} · final summary score: ${score} · ${context.source === 'extension' ? 'Chrome extension' : 'website'}`;
+document.querySelector('#session-context').textContent = `Session: ${formatTime(context.verifiedSeconds || context.durationSeconds)} verified study · ${formatTime(context.offTaskSeconds)} off task · ${context.trackingCoverage}% tracking coverage · focus estimate: ${score} · ${context.source === 'extension' ? 'Chrome extension' : 'website'}`;
 
 document.querySelector('#survey-form').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -21,7 +21,8 @@ document.querySelector('#survey-form').addEventListener('submit', async (event) 
   try {
     await submitResearchFeedback({
       ...context, ease: Number(data.get('ease')), usefulness: Number(data.get('usefulness')),
-      trust: Number(data.get('trust')), wouldUse: data.get('wouldUse'), mostUseful: data.get('mostUseful'),
+      trust: Number(data.get('trust')), selfReportedFocus: Number(data.get('selfReportedFocus')),
+      onTaskShare: data.get('onTaskShare'), wouldUse: data.get('wouldUse'), mostUseful: data.get('mostUseful'),
       confusing: data.get('confusing'), consent: data.get('consent') === 'on',
     });
     status.textContent = 'Thank you. Your anonymous response was recorded.';

@@ -42,7 +42,7 @@ function publish(landmarks) {
   if (!landmarks) {
     engine.lastSampleAt = performance.now();
     blinkDetector.isBlinking = false;
-    status('calibrating', 'Move into view so calibration can continue');
+    send({ type: 'LEARNFIT_TRACKER_SIGNAL', available: false });
     return;
   }
   const now = performance.now();
@@ -56,6 +56,7 @@ function publish(landmarks) {
     isFatigued: blink.isFatigued,
     blinkCompleted: blink.completed,
   }, now);
+  send({ type: 'LEARNFIT_TRACKER_SIGNAL', available: true });
   if (now - lastSentAt >= 750 || data.isCalibrating) {
     lastSentAt = now;
     send({

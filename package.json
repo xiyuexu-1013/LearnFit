@@ -1,7 +1,7 @@
 {
   "name": "@learnfit/core",
   "version": "1.0.0",
-  "description": "Privacy-first, browser-based study rhythm tracking with a personal baseline and rule-based feedback.",
+  "description": "Privacy-first focus estimates for verified, screen-based study tasks with a personal baseline.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -26,7 +26,7 @@
     "deploy": "npm run check && npm test && npm run build && npm run build:pages && wrangler pages deploy site-dist --project-name learnfit --branch main",
     "build:extension": "npm run prepare:site && node scripts/prepare-extension.mjs",
     "build": "esbuild src/core/index.js --bundle --format=esm --platform=browser --sourcemap --outfile=dist/index.js",
-    "check": "node --check src/core/index.js && node --check src/core/tracker.js && node --check src/core/engine.js && node --check extension/chrome/background.js && node --check extension/chrome/popup.js && node --check extension/chrome/offscreen.js && node --check extension/chrome/sandbox.js && node --check extension/chrome/permission.js && node --check demo/app.js && node --check demo/session.js && node --check demo/workflow.js && node --check demo/research.js && node --check demo/feedback-page.js && node --check demo/admin.js && node --check pages-function/index.js && node --check pages-function/validation.js",
+    "check": "node --check src/core/index.js && node --check src/core/tracker.js && node --check src/core/engine.js && node --check extension/chrome/task-context.js && node --check extension/chrome/quiet-console.js && node --check extension/chrome/background.js && node --check extension/chrome/popup.js && node --check extension/chrome/offscreen.js && node --check extension/chrome/sandbox.js && node --check extension/chrome/permission.js && node --check demo/app.js && node --check demo/session.js && node --check demo/workflow.js && node --check demo/research.js && node --check demo/feedback-page.js && node --check demo/admin.js && node --check pages-function/index.js && node --check pages-function/validation.js",
     "prepublishOnly": "npm run check && npm run build",
     "test": "node --test tests/*.test.js"
   },

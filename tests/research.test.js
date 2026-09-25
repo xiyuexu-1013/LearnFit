@@ -27,12 +27,15 @@ test('rejects identifiers and values outside the research schema', () => {
 });
 
 test('requires explicit consent and complete quantitative feedback', () => {
-  const valid = validateFeedback({ ...base, ease: 4, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'The clear final score.', confusing: 'Calibration took a while.', consent: true });
+  const fields = { selfReportedFocus: 4, onTaskShare: 'most', verifiedSeconds: 280, offTaskSeconds: 41, trackingCoverage: 88 };
+  const valid = validateFeedback({ ...base, ...fields, ease: 4, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'The clear final score.', confusing: 'Calibration took a while.', consent: true });
   assert.equal(valid.mostUseful, 'The clear final score.');
-  const concise = validateFeedback({ ...base, ease: 4, usefulness: 5, trust: 4, wouldUse: 'maybe', mostUseful: '', confusing: '', consent: true });
+  assert.equal(valid.trackingCoverage, 88);
+  const concise = validateFeedback({ ...base, ...fields, ease: 4, usefulness: 5, trust: 4, wouldUse: 'maybe', mostUseful: '', confusing: '', consent: true });
   assert.equal(concise.confusing, '');
-  assert.throws(() => validateFeedback({ ...base, ease: 4, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'Useful', confusing: 'Nothing', consent: false }));
-  assert.throws(() => validateFeedback({ ...base, ease: 6, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'Useful', confusing: 'Nothing', consent: true }));
+  assert.throws(() => validateFeedback({ ...base, ...fields, ease: 4, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'Useful', confusing: 'Nothing', consent: false }));
+  assert.throws(() => validateFeedback({ ...base, ...fields, ease: 6, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: 'Useful', confusing: 'Nothing', consent: true }));
+  assert.throws(() => validateFeedback({ ...base, ...fields, selfReportedFocus: 6, ease: 4, usefulness: 5, trust: 4, wouldUse: 'yes', mostUseful: '', confusing: '', consent: true }));
 });
 
 test('accepts same-origin Pages requests and rejects unrelated sites', () => {

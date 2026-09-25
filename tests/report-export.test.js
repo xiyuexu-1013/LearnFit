@@ -16,6 +16,7 @@ test('builds a safe standalone report with recommendations', () => {
   });
   assert.match(html, /<!doctype html>/);
   assert.match(html, /8–12 min/);
+  assert.match(html, /Average focus estimate/);
   assert.match(html, /Try one chapter &amp; reflect\./);
   assert.doesNotMatch(html, /<script>alert/);
   assert.match(reportBaseName('2026-09-23T12:34:00Z'), /^learnfit-session-2026-09-23-1234$/);

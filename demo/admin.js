@@ -60,13 +60,15 @@ async function load() {
       stat('EASE OF USE', data.feedback.ease ?? '—', 'Average out of 5'),
       stat('USEFULNESS', data.feedback.usefulness ?? '—', 'Average out of 5'),
       stat('SCORE CLARITY', data.feedback.trust ?? '—', 'Average out of 5'),
+      stat('SELF-RATED FOCUS', data.feedback.selfReportedFocus ?? '—', 'Average task focus out of 5'),
+      stat('MATCHED SESSIONS', data.feedback.matchedSessions, data.feedback.focusCorrelation === null ? 'Need 10 matched sessions for correlation' : `Score/self-report correlation ${data.feedback.focusCorrelation}`),
       stat('WOULD USE AGAIN', data.feedback.wouldUse.yes, `${data.feedback.wouldUse.maybe} maybe · ${data.feedback.wouldUse.no} no`),
     );
     renderBars($('daily-list'), data.daily.map((row) => ({ ...row, total: Number(row.completed || 0) })), 'day', 'total');
     renderBars($('source-list'), data.sources, 'source', 'duration_seconds', formatDuration);
     $('responses').replaceChildren(...data.recent.map((response) => {
       const card = element('article', 'feedback-card');
-      card.append(element('small', '', `${new Date(`${response.created_at}Z`).toLocaleString()} · ${response.source} · ${Math.round(response.duration_seconds / 60)} min · score ${response.score ?? '—'}`), element('h3', '', response.most_useful || 'No written highlight.'), element('p', '', response.confusing || 'No written improvement note.'), element('span', '', `Ease ${response.ease}/5 · Useful ${response.usefulness}/5 · Clear ${response.trust}/5 · Again: ${response.would_use}`));
+      card.append(element('small', '', `${new Date(`${response.created_at}Z`).toLocaleString()} · ${response.source} · verified ${Math.round(response.verified_seconds / 60)} min · off task ${Math.round(response.off_task_seconds / 60)} min · coverage ${response.tracking_coverage}% · score ${response.score ?? '—'}`), element('h3', '', response.most_useful || 'No written highlight.'), element('p', '', response.confusing || 'No written improvement note.'), element('span', '', `Ease ${response.ease}/5 · Useful ${response.usefulness}/5 · Clear ${response.trust}/5 · Self-focus ${response.self_reported_focus ?? '—'}/5 · On task: ${response.on_task_share ?? '—'} · Again: ${response.would_use}`));
       return card;
     }));
   } catch (error) {

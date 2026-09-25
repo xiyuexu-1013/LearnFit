@@ -2,7 +2,7 @@
 
 **Live app:** <https://learnfit.pages.dev/> · **Build history:** [CHANGELOG.md](CHANGELOG.md)
 
-Understand your personal study rhythm. LearnFit is a privacy-first, browser-based study tool that compares observable eye behavior with a personal session baseline.
+LearnFit is a privacy-first, browser-based focus experiment for screen-based study. It compares observable eye behavior with a personal baseline and, in the Chrome extension, scores only pages the learner verifies for the current task.
 
 ## Run the app
 
@@ -28,13 +28,13 @@ Choose **Start Focus Session**, allow camera access, and look naturally at your 
 
 ## How it works
 
-Camera → eye landmarks → EAR → blink detection → temporal features → personal baseline → focus-rhythm estimate → study feedback.
+Verified study page + camera → eye landmarks → EAR → blink detection → temporal features → personal baseline → focus estimate → study feedback.
 
 The Focus Rhythm Engine is rule-based. It retains the existing EAR calculation, blink detector, 50/30/20 component weights, time-based score smoothing, and longer-closure rule. Calibration uses 30 seconds of usable observations, estimates blink frequency from completed blinks per observed minute, averages completed blink durations rather than repeated frame values, and resets each session. If no blinks are observed, frequency and duration comparisons are unavailable and neither applies a penalty. Smoothing uses a 1.5-second exponential time constant instead of a fixed frame count; this is an engineering heuristic, not a validated attention model.
 
 **Technical distinction:** the existing MediaPipe FaceMesh dependency uses a pretrained computer-vision model to locate landmarks. LearnFit does not train a model or use a trained attention model to produce its rhythm estimates. Calling the entire pipeline “free of machine learning” would be inaccurate.
 
-LearnFit estimates changes in study rhythm from observable eye behavior. It does not directly measure attention or provide medical or psychological assessment.
+LearnFit estimates changes in task focus from observable eye behavior during verified, screen-based study pages. Normal blinking remains valid data; missing face tracking creates a gap, and reports suppress the final estimate below 60% coverage. It is not a medical or psychological assessment.
 
 ## Privacy
 
@@ -98,4 +98,4 @@ npm run build:extension
 
 Then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `extension/chrome`. Start a session from the LearnFit toolbar popup and allow camera access when Chrome asks. The extension uses a local offscreen document, so tracking continues when ordinary website tabs change or close. Pausing or ending the session stops the study clock; ending also releases the camera.
 
-All MediaPipe files and the LearnFit scoring engine are bundled inside the extension. Camera frames, eye landmarks, scores, and session state are not sent to a server.
+All MediaPipe files and the LearnFit scoring engine are bundled inside the extension. Camera frames, eye landmarks, page addresses, page titles, chosen study pages, and session state stay on the device. Only anonymous aggregate verified study time is sent automatically; detailed evaluation data requires consent.

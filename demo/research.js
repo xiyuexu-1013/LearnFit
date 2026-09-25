@@ -1,6 +1,6 @@
 export const RESEARCH_CONSENT_KEY = 'learnfitResearchConsent';
 export const ANONYMOUS_ID_KEY = 'learnfitAnonymousId';
-export const PRODUCT_VERSION = 'web-0.8';
+export const PRODUCT_VERSION = 'web-0.9';
 
 export function getAnonymousId(storage = localStorage) {
   let id = storage.getItem(ANONYMOUS_ID_KEY);
@@ -42,22 +42,28 @@ export function postAggregateUsage({ source, eventType, durationSeconds = 0 }) {
   return postJson('/api/usage', { source, eventType, durationSeconds });
 }
 
-export function submitResearchFeedback({ sessionId, source, durationSeconds, score, appVersion, ease, usefulness, trust, wouldUse, mostUseful, confusing, consent }) {
+export function submitResearchFeedback({ sessionId, source, durationSeconds, verifiedSeconds = durationSeconds, offTaskSeconds = 0, trackingCoverage = 0, score, appVersion, ease, usefulness, trust, selfReportedFocus, onTaskShare, wouldUse, mostUseful, confusing, consent }) {
   return postJson('/api/feedback', {
-    anonymousId: getAnonymousId(), sessionId, source, durationSeconds, score,
-    appVersion, ease, usefulness, trust, wouldUse, mostUseful, confusing, consent,
+    anonymousId: getAnonymousId(), sessionId, source, durationSeconds, verifiedSeconds, offTaskSeconds, trackingCoverage, score,
+    appVersion, ease, usefulness, trust, selfReportedFocus, onTaskShare, wouldUse, mostUseful, confusing, consent,
   });
 }
 
 export function parseFeedbackHash(hash = location.hash) {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
   const durationSeconds = Number(params.get('durationSeconds'));
+  const verifiedSeconds = Number(params.get('verifiedSeconds'));
+  const offTaskSeconds = Number(params.get('offTaskSeconds'));
+  const trackingCoverage = Number(params.get('trackingCoverage'));
   const scoreValue = params.get('score');
   const score = scoreValue === '' || scoreValue === null ? null : Number(scoreValue);
   return {
     sessionId: params.get('sessionId') || crypto.randomUUID(),
     source: params.get('source') === 'extension' ? 'extension' : 'web',
     durationSeconds: Number.isFinite(durationSeconds) ? Math.max(0, Math.round(durationSeconds)) : 0,
+    verifiedSeconds: Number.isFinite(verifiedSeconds) ? Math.max(0, Math.round(verifiedSeconds)) : 0,
+    offTaskSeconds: Number.isFinite(offTaskSeconds) ? Math.max(0, Math.round(offTaskSeconds)) : 0,
+    trackingCoverage: Number.isFinite(trackingCoverage) ? Math.max(0, Math.min(100, trackingCoverage)) : 0,
     score: Number.isFinite(score) ? score : null,
     appVersion: (params.get('appVersion') || 'unknown').slice(0, 32),
   };

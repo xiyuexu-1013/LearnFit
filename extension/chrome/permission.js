@@ -15,7 +15,7 @@ button.addEventListener('click', async () => {
     stream.getTracks().forEach((track) => track.stop());
     const session = await chrome.runtime.sendMessage({ type: 'LEARNFIT_START' });
     if (session.error) throw new Error(session.error);
-    status.textContent = 'LearnFit is running in the background. You may close this page.';
+    status.textContent = 'LearnFit is running. Your original page is now the verified study page; you may close this setup page.';
     button.textContent = 'Background session started';
   } catch (error) {
     status.textContent = error.message;

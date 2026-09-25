@@ -20,14 +20,15 @@ export function summarize(samples, duration) {
     } else shiftRun = null;
   }
   const quality = samples.length ? Math.round(usable.length / samples.length * 100) : null;
-  const averageScore = usable.length
+  const rawAverageScore = usable.length
     ? Math.round(usable.reduce((total, sample) => total + sample.score, 0) / usable.length)
     : null;
+  const averageScore = quality !== null && quality >= 60 ? rawAverageScore : null;
   const enough = usable.length >= 60 && quality >= 70;
   const suggested = enough && firstShift !== null && firstShift >= 300
     ? `${Math.max(5, Math.floor(firstShift / 60) - 2)}–${Math.max(7, Math.floor(firstShift / 60) + 2)} min`
     : null;
-  return { duration, usable: usable.length, quality, averageScore, best: best && best.end - best.start >= 10 ? best : null, firstShift, suggested };
+  return { duration, usable: usable.length, quality, averageScore, rawAverageScore, best: best && best.end - best.start >= 10 ? best : null, firstShift, suggested };
 }
 
 export function renderChart(element, samples, duration, emptyText) {

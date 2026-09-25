@@ -93,6 +93,23 @@ test('report averages usable engine scores and ignores gaps', () => {
   assert.equal(summarize([], 0).averageScore, null);
 });
 
+test('report suppresses a final focus estimate below 60 percent coverage', () => {
+  const samples = [{t: 1, score: 80}, {t: 2, score: null}, {t: 3, score: null}];
+  const report = summarize(samples, 3);
+  assert.equal(report.quality, 33);
+  assert.equal(report.rawAverageScore, 80);
+  assert.equal(report.averageScore, null);
+});
+
+test('a normal completed blink remains valid input rather than a tracking gap', () => {
+  const detector = new BlinkDetector();
+  detector.update(.1, 100);
+  const blink = detector.update(.3, 280);
+  assert.equal(blink.completed, true);
+  assert.equal(blink.isFatigued, false);
+  assert.equal(blink.duration, 180);
+});
+
 test('suggestions require enough signal and an observed later shift', () => {
   const samples = Array.from({length: 400}, (_, i) => ({t: i + 1, score: i < 360 ? 90 : 60}));
   assert.equal(summarize(samples, 400).suggested, '5–8 min');

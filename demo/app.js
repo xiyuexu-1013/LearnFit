@@ -88,7 +88,7 @@ function onData(data) {
       studyStartedAt = performance.now();
       $('calibration').hidden = true;
       $('session-label').textContent = 'YOUR FOCUS SESSION';
-      $('session-subtitle').textContent = 'A little insight, while you do your thing.';
+      $('session-subtitle').textContent = 'A focus estimate for the visible, screen-based task you chose.';
       $('baseline-note').textContent = data.baseline.blinkDuration > 0 ? 'Baseline established from your first 30 seconds of usable eye tracking.' : 'Baseline established. No completed blinks were observed, so blink-duration comparisons are unavailable.';
     }
     if ($('rhythm-status').textContent !== data.status) $('rhythm-status').textContent = data.status;
@@ -220,13 +220,13 @@ function renderReport() {
   $('report-task').textContent = sessionTask ? `Task: ${sessionTask}` : '';
   $('report-date').textContent = new Intl.DateTimeFormat('en', { dateStyle: 'long', timeStyle: 'short' }).format(reportCreatedAt);
   const stats = [
-    ['Average rhythm score', report.averageScore !== null ? `${report.averageScore} / 100` : 'Not enough data', 'Average of usable post-baseline observations'],
+    ['Average focus estimate', report.averageScore !== null ? `${report.averageScore} / 100` : 'Not enough data', 'Average of valid post-baseline focus observations; hidden below 60% coverage'],
     ['Study time', formatTime(seconds), 'Excludes calibration and paused time'],
     ['Suggested check-in', report.suggested ?? 'Choose your pace', report.suggested ? 'An experiment around your observed shift, not a limit' : 'No supported duration suggestion from this session'],
     ['Most stable period', report.best ? `${formatTime(report.best.start)}–${formatTime(report.best.end)}` : 'Not enough data', 'Longest uninterrupted stable period, at least 10 seconds'],
-    ['Rhythm shift detected', report.firstShift !== null ? `Around ${formatTime(report.firstShift)}` : report.usable < 10 ? 'Not enough data' : 'None observed', 'First shift sustained for at least 10 seconds'],
-    ['Data quality', report.quality === null ? 'No study data' : `${report.quality}% usable`, 'Share of study-time seconds with recent tracking'],
-    ['Personal Baseline', studyStartedAt !== null ? 'Established' : 'Incomplete', studyStartedAt !== null ? '30 seconds of usable tracking' : 'Complete calibration for a rhythm estimate'],
+    ['Focus shift detected', report.firstShift !== null ? `Around ${formatTime(report.firstShift)}` : report.usable < 10 ? 'Not enough data' : 'None observed', 'First shift sustained for at least 10 seconds'],
+    ['Tracking coverage', report.quality === null ? 'No study data' : `${report.quality}%`, report.quality !== null && report.quality < 60 ? 'Below 60%, so no final focus estimate is reported' : 'Share of study-time seconds with valid eye tracking'],
+    ['Personal Baseline', studyStartedAt !== null ? 'Established' : 'Incomplete', studyStartedAt !== null ? '30 seconds of usable tracking' : 'Complete calibration for a focus estimate'],
   ];
   $('summary-grid').replaceChildren(...stats.map(([label, value, note]) => {
     const card = document.createElement('article'); card.className = 'card';
@@ -234,11 +234,11 @@ function renderReport() {
     return card;
   }));
   renderChart($('report-chart'), samples, seconds, 'No post-calibration observations to show');
-  $('report-explanation').textContent = `${report.usable} usable one-second observations. The rhythm index summarizes eye behavior relative to your baseline; it is not a percentage of attention. ${report.quality !== null && report.quality < 70 ? 'Limited tracking makes patterns less reliable.' : 'Empty sections show unavailable tracking.'}`;
+  $('report-explanation').textContent = `${report.usable} usable one-second observations. The focus estimate compares observable eye behavior with your baseline while this study page is visible. The Chrome extension can also exclude unverified tabs. ${report.quality !== null && report.quality < 70 ? 'Limited tracking makes patterns less reliable.' : 'Empty sections show unavailable tracking.'}`;
   const recommendations = [
     report.firstShift !== null ? `Check in with yourself around ${formatTime(report.firstShift)} next time; consider a short break if you want one.` : 'Choose one manageable task for your next session, and check in with how it feels.',
     report.quality === null || report.quality < 80 ? 'Try even lighting and a camera positioned at eye level to improve tracking.' : 'Keep a similar camera position and lighting for a more consistent baseline.',
-    'Use the report alongside your own experience. Adjust your study plan based on what helps you learn.',
+    'Compare the estimate with what you completed and how focused the task actually felt.',
   ];
   reportRecommendations = recommendations;
   $('recommendations').replaceChildren(...recommendations.map((text) => { const li = document.createElement('li'); li.textContent = text; return li; }));
@@ -362,8 +362,10 @@ $('survey-form').addEventListener('submit', async (event) => {
   try {
     await submitResearchFeedback({
       sessionId, source: 'web', durationSeconds: seconds, score: latestReport.averageScore,
+      verifiedSeconds: seconds, offTaskSeconds: 0, trackingCoverage: latestReport.quality ?? 0,
       appVersion: PRODUCT_VERSION, ease: Number(data.get('ease')), usefulness: Number(data.get('usefulness')),
-      trust: Number(data.get('trust')), wouldUse: data.get('wouldUse'), mostUseful: data.get('mostUseful'),
+      trust: Number(data.get('trust')), selfReportedFocus: Number(data.get('selfReportedFocus')),
+      onTaskShare: data.get('onTaskShare'), wouldUse: data.get('wouldUse'), mostUseful: data.get('mostUseful'),
       confusing: data.get('confusing'), consent: data.get('consent') === 'on',
     });
     researchEnabled = true;

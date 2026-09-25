@@ -97,11 +97,13 @@ async function recordFeedback(request, env) {
       VALUES (?, datetime('now'), ?, ?, ?, 'completed', ?, ?, ?)`)
       .bind(crypto.randomUUID(), feedback.anonymousId, feedback.sessionId, feedback.source, feedback.durationSeconds, feedback.score, feedback.appVersion),
     env.DB.prepare(`INSERT INTO feedback
-      (id, created_at, anon_id, session_id, source, duration_seconds, score, app_version, ease, usefulness, trust, would_use, most_useful, confusing)
-      VALUES (?, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, created_at, anon_id, session_id, source, duration_seconds, verified_seconds, off_task_seconds, tracking_coverage, score, app_version, ease, usefulness, trust, self_reported_focus, on_task_share, would_use, most_useful, confusing)
+      VALUES (?, datetime('now'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(session_id) DO UPDATE SET ease=excluded.ease, usefulness=excluded.usefulness,
-      trust=excluded.trust, would_use=excluded.would_use, most_useful=excluded.most_useful, confusing=excluded.confusing`)
-      .bind(crypto.randomUUID(), feedback.anonymousId, feedback.sessionId, feedback.source, feedback.durationSeconds, feedback.score, feedback.appVersion, feedback.ease, feedback.usefulness, feedback.trust, feedback.wouldUse, feedback.mostUseful, feedback.confusing),
+      trust=excluded.trust, self_reported_focus=excluded.self_reported_focus, on_task_share=excluded.on_task_share,
+      verified_seconds=excluded.verified_seconds, off_task_seconds=excluded.off_task_seconds, tracking_coverage=excluded.tracking_coverage,
+      would_use=excluded.would_use, most_useful=excluded.most_useful, confusing=excluded.confusing`)
+      .bind(crypto.randomUUID(), feedback.anonymousId, feedback.sessionId, feedback.source, feedback.durationSeconds, feedback.verifiedSeconds, feedback.offTaskSeconds, feedback.trackingCoverage, feedback.score, feedback.appVersion, feedback.ease, feedback.usefulness, feedback.trust, feedback.selfReportedFocus, feedback.onTaskShare, feedback.wouldUse, feedback.mostUseful, feedback.confusing),
   ];
   await env.DB.batch(statements);
   return json({ ok: true }, 201);
@@ -115,15 +117,29 @@ async function pruneOldResearchData(env) {
   ]);
 }
 
+function correlation(rows) {
+  if (rows.length < 10) return null;
+  const meanX = rows.reduce((sum, row) => sum + Number(row.score), 0) / rows.length;
+  const meanY = rows.reduce((sum, row) => sum + Number(row.self_reported_focus), 0) / rows.length;
+  let numerator = 0; let sumX = 0; let sumY = 0;
+  for (const row of rows) {
+    const x = Number(row.score) - meanX; const y = Number(row.self_reported_focus) - meanY;
+    numerator += x * y; sumX += x * x; sumY += y * y;
+  }
+  const denominator = Math.sqrt(sumX * sumY);
+  return denominator ? Math.round(numerator / denominator * 100) / 100 : null;
+}
+
 async function summary(env) {
-  const [people, detailedEvents, usage, ratings, sources, daily, recent] = await Promise.all([
+  const [people, detailedEvents, usage, ratings, matched, sources, daily, recent] = await Promise.all([
     env.DB.prepare(`SELECT COUNT(DISTINCT anon_id) AS count FROM (SELECT anon_id FROM events UNION ALL SELECT anon_id FROM feedback)`).first(),
     env.DB.prepare(`SELECT SUM(event_type='started') AS started, SUM(event_type='completed') AS completed FROM events`).first(),
     env.DB.prepare(`SELECT SUM(CASE WHEN event_type='started' THEN event_count ELSE 0 END) AS started, SUM(CASE WHEN event_type='completed' THEN event_count ELSE 0 END) AS completed, SUM(CASE WHEN event_type='completed' THEN duration_seconds ELSE 0 END) AS duration_seconds, SUM(CASE WHEN event_type='completed' THEN duration_count ELSE 0 END) AS duration_count FROM daily_usage`).first(),
-    env.DB.prepare(`SELECT COUNT(*) AS responses, ROUND(AVG(ease),2) AS ease, ROUND(AVG(usefulness),2) AS usefulness, ROUND(AVG(trust),2) AS trust, SUM(would_use='yes') AS would_yes, SUM(would_use='maybe') AS would_maybe, SUM(would_use='no') AS would_no FROM feedback`).first(),
+    env.DB.prepare(`SELECT COUNT(*) AS responses, ROUND(AVG(ease),2) AS ease, ROUND(AVG(usefulness),2) AS usefulness, ROUND(AVG(trust),2) AS trust, ROUND(AVG(self_reported_focus),2) AS self_reported_focus, SUM(would_use='yes') AS would_yes, SUM(would_use='maybe') AS would_maybe, SUM(would_use='no') AS would_no FROM feedback`).first(),
+    env.DB.prepare(`SELECT score, self_reported_focus FROM feedback WHERE score IS NOT NULL AND self_reported_focus IS NOT NULL`).all(),
     env.DB.prepare(`SELECT source, SUM(event_count) AS completed, SUM(duration_seconds) AS duration_seconds FROM daily_usage WHERE event_type='completed' GROUP BY source ORDER BY source`).all(),
     env.DB.prepare(`SELECT day, SUM(CASE WHEN event_type='started' THEN event_count ELSE 0 END) AS started, SUM(CASE WHEN event_type='completed' THEN event_count ELSE 0 END) AS completed, SUM(CASE WHEN event_type='completed' THEN duration_seconds ELSE 0 END) AS duration_seconds FROM daily_usage WHERE day >= date('now','-30 days') GROUP BY day ORDER BY day`).all(),
-    env.DB.prepare(`SELECT created_at, source, duration_seconds, score, ease, usefulness, trust, would_use, most_useful, confusing FROM feedback ORDER BY created_at DESC LIMIT 100`).all(),
+    env.DB.prepare(`SELECT created_at, source, duration_seconds, verified_seconds, off_task_seconds, tracking_coverage, score, ease, usefulness, trust, self_reported_focus, on_task_share, would_use, most_useful, confusing FROM feedback ORDER BY created_at DESC LIMIT 100`).all(),
   ]);
   const started = Number(usage?.started || 0);
   const completed = Number(usage?.completed || 0);
@@ -135,15 +151,15 @@ async function summary(env) {
     totalDurationSeconds,
     averageDurationSeconds: durationSessionCount ? Math.round(totalDurationSeconds / durationSessionCount) : 0,
     detailedSessions: Number(detailedEvents?.completed || 0),
-    feedback: { responses: Number(ratings?.responses || 0), ease: ratings?.ease, usefulness: ratings?.usefulness, trust: ratings?.trust, wouldUse: { yes: Number(ratings?.would_yes || 0), maybe: Number(ratings?.would_maybe || 0), no: Number(ratings?.would_no || 0) } },
+    feedback: { responses: Number(ratings?.responses || 0), ease: ratings?.ease, usefulness: ratings?.usefulness, trust: ratings?.trust, selfReportedFocus: ratings?.self_reported_focus, matchedSessions: matched.results.length, focusCorrelation: correlation(matched.results), wouldUse: { yes: Number(ratings?.would_yes || 0), maybe: Number(ratings?.would_maybe || 0), no: Number(ratings?.would_no || 0) } },
     sources: sources.results, daily: daily.results, recent: recent.results,
   };
 }
 
 function csvCell(value) { return `"${String(value ?? '').replaceAll('"', '""')}"`; }
 async function exportCsv(env) {
-  const { results } = await env.DB.prepare(`SELECT created_at, source, duration_seconds, score, app_version, ease, usefulness, trust, would_use, most_useful, confusing FROM feedback ORDER BY created_at DESC`).all();
-  const columns = ['created_at','source','duration_seconds','score','app_version','ease','usefulness','trust','would_use','most_useful','confusing'];
+  const { results } = await env.DB.prepare(`SELECT created_at, source, duration_seconds, verified_seconds, off_task_seconds, tracking_coverage, score, app_version, ease, usefulness, trust, self_reported_focus, on_task_share, would_use, most_useful, confusing FROM feedback ORDER BY created_at DESC`).all();
+  const columns = ['created_at','source','duration_seconds','verified_seconds','off_task_seconds','tracking_coverage','score','app_version','ease','usefulness','trust','self_reported_focus','on_task_share','would_use','most_useful','confusing'];
   const body = [columns.join(','), ...results.map((row) => columns.map((key) => csvCell(row[key])).join(','))].join('\n');
   return new Response(body, { headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="learnfit-research.csv"', 'Cache-Control': 'no-store' } });
 }
