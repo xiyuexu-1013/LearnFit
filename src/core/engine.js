@@ -23,6 +23,24 @@ export function calculateEAR(landmarks, width = 1, height = 1) {
   return (eyeEAR(EYE_LANDMARKS.LEFT) + eyeEAR(EYE_LANDMARKS.RIGHT)) / 2;
 }
 
+// A normal blink is brief and remains valid input. Sustained eye compression,
+// common when the face tilts down and the eyes are only partly visible, becomes
+// missing signal instead of a low focus score.
+export class EyeSignalGate {
+  constructor({ maximumLowMs = 650 } = {}) {
+    this.maximumLowMs = maximumLowMs;
+    this.reset();
+  }
+
+  reset() { this.lowStartedAt = null; }
+
+  update(ear, now = performance.now(), threshold = 0.16) {
+    if (ear >= threshold) { this.reset(); return true; }
+    this.lowStartedAt ??= now;
+    return now - this.lowStartedAt < this.maximumLowMs;
+  }
+}
+
 /**
  * 眨眼状态机移植自 legacy/backend/blink.py。
  * 记录最近 60 秒的眨眼次数，并保留最近一次闭眼时长。

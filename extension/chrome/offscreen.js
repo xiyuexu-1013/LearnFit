@@ -1,9 +1,10 @@
-import { BlinkDetector, FocusEngine, calculateEAR } from './runtime/engine.js';
+import { BlinkDetector, EyeSignalGate, FocusEngine, calculateEAR } from './runtime/engine.js';
 
 const video = document.querySelector('#camera');
 const visionFrame = document.querySelector('#vision');
 const engine = new FocusEngine();
 const blinkDetector = new BlinkDetector();
+const eyeSignalGate = new EyeSignalGate();
 
 let stream;
 let running = false;
@@ -42,11 +43,21 @@ function publish(landmarks) {
   if (!landmarks) {
     engine.lastSampleAt = performance.now();
     blinkDetector.isBlinking = false;
+    eyeSignalGate.reset();
     send({ type: 'LEARNFIT_TRACKER_SIGNAL', available: false });
     return;
   }
   const now = performance.now();
   const ear = Math.max(calculateEAR(landmarks, video.videoWidth, video.videoHeight), 1e-6);
+  const usableThreshold = engine.calibrationMs < 30_000
+    ? 0.16
+    : Math.min(0.22, Math.max(0.16, engine.baseline.ear * 0.68));
+  if (!eyeSignalGate.update(ear, now, usableThreshold)) {
+    engine.lastSampleAt = now;
+    blinkDetector.isBlinking = false;
+    send({ type: 'LEARNFIT_TRACKER_SIGNAL', available: false });
+    return;
+  }
   const blink = blinkDetector.update(ear, now);
   const observedSeconds = Math.min(60, Math.max(1, (now - engine.sessionStartedAt) / 1000));
   const data = engine.calculate({

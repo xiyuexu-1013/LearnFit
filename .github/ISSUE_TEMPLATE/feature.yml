@@ -1,0 +1,14 @@
+name: Feature request
+description: Propose an improvement to the SDK or application.
+body:
+  - type: textarea
+    attributes:
+      label: Use case
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed behavior and alternatives
+  - type: textarea
+    attributes:
+      label: Compatibility, privacy and test considerations

@@ -35,3 +35,8 @@ for (const size of [16, 32, 128]) {
 }
 
 console.log('Prepared the self-contained Chrome extension runtime.');
+
+await build({ entryPoints: [new URL('src/ui/tutorial.js', root).pathname], bundle: true, format: 'esm', platform: 'browser', outfile: new URL('tutorial.js', runtime).pathname });
+await cp(new URL('node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2', root), new URL('instrument-serif.woff2', runtime));
+
+await build({ entryPoints: [new URL('src/ui/language.js', root).pathname], bundle: true, format: 'esm', platform: 'browser', outfile: new URL('language.js', runtime).pathname });

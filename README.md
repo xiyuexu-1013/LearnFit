@@ -99,3 +99,7 @@ npm run build:extension
 Then open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select `extension/chrome`. Start a session from the LearnFit toolbar popup and allow camera access when Chrome asks. The extension uses a local offscreen document, so tracking continues when ordinary website tabs change or close. Pausing or ending the session stops the study clock; ending also releases the camera.
 
 All MediaPipe files and the LearnFit scoring engine are bundled inside the extension. Camera frames, eye landmarks, page addresses, page titles, chosen study pages, and session state stay on the device. Only anonymous aggregate verified study time is sent automatically; detailed evaluation data requires consent.
+
+## SDK quick start (synthetic data)
+
+Run `node examples/synthetic-session.mjs` from the repository root. This exercises the numerical engine without camera access or private observations. See [SDK API](docs/api/README.md) and [Contributing](CONTRIBUTING.md).

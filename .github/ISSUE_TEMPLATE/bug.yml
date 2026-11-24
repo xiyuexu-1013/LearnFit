@@ -1,0 +1,20 @@
+name: Bug report
+description: Explain unexpected behavior using non-sensitive test data.
+body:
+  - type: textarea
+    attributes:
+      label: Expected and observed behavior
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction using synthetic data
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version and browser
+  - type: textarea
+    attributes:
+      label: Relevant non-sensitive logs
+      description: Remove personal data, participant records, and credentials.

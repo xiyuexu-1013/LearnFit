@@ -18,3 +18,18 @@ LearnFit-Chrome-Extension-v1.1.0/
 social/LearnFit-南外表白墙海报/
 /=
 local/
+
+# local credentials, generated artifacts and private records
+.env*
+!.env.example
+.dev.vars
+*.key
+*.pem
+*.sqlite*
+*.db
+*.ses
+*.log
+__pycache__/
+.DS_Store
+node_modules/
+.wrangler/

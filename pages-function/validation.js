@@ -3,6 +3,7 @@ const SOURCES = new Set(['web', 'extension']);
 const EVENT_TYPES = new Set(['started', 'completed']);
 const WOULD_USE = new Set(['yes', 'maybe', 'no']);
 const ON_TASK_SHARE = new Set(['all', 'most', 'half', 'little', 'none']);
+const PARTNER_CODE_PATTERN = /^p_[a-z0-9]{12}$/;
 
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 const number = (value, min, max, nullable = false) => {
@@ -12,10 +13,22 @@ const number = (value, min, max, nullable = false) => {
   return Math.round(parsed * 100) / 100;
 };
 
+const partnerCode = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !PARTNER_CODE_PATTERN.test(value)) throw new Error('Invalid institution invite code.');
+  return value;
+};
+
+export function validatePartner(body) {
+  const name = text(body.name, 100);
+  if (name.length < 2) throw new Error('Institution name must contain at least 2 characters.');
+  return { name };
+}
+
 export function validateUsage(body) {
   if (!SOURCES.has(body.source) || !EVENT_TYPES.has(body.eventType)) throw new Error('Invalid aggregate usage event.');
   const durationSeconds = Math.round(number(body.durationSeconds ?? 0, 0, 86400));
-  return { source: body.source, eventType: body.eventType, durationSeconds: body.eventType === 'completed' ? durationSeconds : 0 };
+  return { source: body.source, eventType: body.eventType, durationSeconds: body.eventType === 'completed' ? durationSeconds : 0, partnerCode: partnerCode(body.partnerCode) };
 }
 
 export function validateEvent(body) {
@@ -29,6 +42,7 @@ export function validateEvent(body) {
     durationSeconds: number(body.durationSeconds ?? 0, 0, 86400),
     score: number(body.score, 0, 100, true),
     appVersion: text(body.appVersion, 32) || 'unknown',
+    partnerCode: partnerCode(body.partnerCode),
   };
 }
 
