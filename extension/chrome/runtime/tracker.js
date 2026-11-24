@@ -27,6 +27,23 @@ function calculateEAR(landmarks, width = 1, height = 1) {
   };
   return (eyeEAR(EYE_LANDMARKS.LEFT) + eyeEAR(EYE_LANDMARKS.RIGHT)) / 2;
 }
+var EyeSignalGate = class {
+  constructor({ maximumLowMs = 650 } = {}) {
+    this.maximumLowMs = maximumLowMs;
+    this.reset();
+  }
+  reset() {
+    this.lowStartedAt = null;
+  }
+  update(ear, now = performance.now(), threshold = 0.16) {
+    if (ear >= threshold) {
+      this.reset();
+      return true;
+    }
+    this.lowStartedAt ??= now;
+    return now - this.lowStartedAt < this.maximumLowMs;
+  }
+};
 var BlinkDetector = class {
   constructor({ earThreshold = 0.22, fatigueDurationMs = 500 } = {}) {
     this.earThreshold = earThreshold;
@@ -271,6 +288,7 @@ var FaceTracker = class {
     this.framePromise = null;
     this.engine = new FocusEngine();
     this.blinkDetector = new BlinkDetector();
+    this.eyeSignalGate = new EyeSignalGate();
     this.running = false;
     this.processing = false;
     this.animationFrame = 0;
@@ -357,6 +375,7 @@ var FaceTracker = class {
       this.frameCounter = 0;
       this.fpsStartedAt = performance.now();
       this.blinkDetector.reset();
+      this.eyeSignalGate.reset();
       this.lastValidFrameAt = 0;
       this.engine.start();
       this.onStatus?.({ status: "running" });
@@ -428,11 +447,19 @@ var FaceTracker = class {
     if (!landmarks) {
       this.engine.lastSampleAt = performance.now() - this.pausedMs;
       this.blinkDetector.isBlinking = false;
+      this.eyeSignalGate.reset();
       this.onStatus?.({ status: "no-face" });
       return;
     }
     const now = performance.now() - this.pausedMs;
     const ear = Math.max(calculateEAR(landmarks, this.video.videoWidth, this.video.videoHeight), 1e-6);
+    const usableThreshold = this.engine.calibrationMs < 3e4 ? 0.16 : Math.min(0.22, Math.max(0.16, this.engine.baseline.ear * 0.68));
+    if (!this.eyeSignalGate.update(ear, now, usableThreshold)) {
+      this.engine.lastSampleAt = now;
+      this.blinkDetector.isBlinking = false;
+      this.onStatus?.({ status: "no-face" });
+      return;
+    }
     if (this.lastValidFrameAt && now - this.lastValidFrameAt > 500) {
       this.blinkDetector.isBlinking = false;
       this.engine.lastSampleAt = now;

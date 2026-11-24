@@ -1,6 +1,18 @@
 export const RESEARCH_CONSENT_KEY = 'learnfitResearchConsent';
 export const ANONYMOUS_ID_KEY = 'learnfitAnonymousId';
 export const PRODUCT_VERSION = 'web-0.9';
+export const PARTNER_CODE_KEY = 'learnfitPartnerCode';
+const PARTNER_CODE_PATTERN = /^p_[a-z0-9]{12}$/;
+
+export function getPartnerCode(storage = localStorage, search = location.search) {
+  const fromUrl = new URLSearchParams(search).get('partner');
+  if (fromUrl && PARTNER_CODE_PATTERN.test(fromUrl)) {
+    storage.setItem(PARTNER_CODE_KEY, fromUrl);
+    return fromUrl;
+  }
+  const stored = storage.getItem(PARTNER_CODE_KEY) || '';
+  return PARTNER_CODE_PATTERN.test(stored) ? stored : null;
+}
 
 export function getAnonymousId(storage = localStorage) {
   let id = storage.getItem(ANONYMOUS_ID_KEY);
@@ -34,18 +46,18 @@ async function postJson(path, payload) {
 export function postResearchEvent({ sessionId, source, eventType, durationSeconds = 0, score = null, appVersion = PRODUCT_VERSION }) {
   return postJson('/api/events', {
     anonymousId: getAnonymousId(), sessionId, source, eventType,
-    durationSeconds, score, appVersion,
+    durationSeconds, score, appVersion, partnerCode: getPartnerCode(),
   });
 }
 
 export function postAggregateUsage({ source, eventType, durationSeconds = 0 }) {
-  return postJson('/api/usage', { source, eventType, durationSeconds });
+  return postJson('/api/usage', { source, eventType, durationSeconds, partnerCode: getPartnerCode() });
 }
 
 export function submitResearchFeedback({ sessionId, source, durationSeconds, verifiedSeconds = durationSeconds, offTaskSeconds = 0, trackingCoverage = 0, score, appVersion, ease, usefulness, trust, selfReportedFocus, onTaskShare, wouldUse, mostUseful, confusing, consent }) {
   return postJson('/api/feedback', {
     anonymousId: getAnonymousId(), sessionId, source, durationSeconds, verifiedSeconds, offTaskSeconds, trackingCoverage, score,
-    appVersion, ease, usefulness, trust, selfReportedFocus, onTaskShare, wouldUse, mostUseful, confusing, consent,
+    appVersion, ease, usefulness, trust, selfReportedFocus, onTaskShare, wouldUse, mostUseful, confusing, consent, partnerCode: getPartnerCode(),
   });
 }
 

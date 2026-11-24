@@ -1,4 +1,4 @@
-import { BlinkDetector, calculateEAR, FocusEngine } from './engine.js';
+import { BlinkDetector, calculateEAR, EyeSignalGate, FocusEngine } from './engine.js';
 
 const FACE_MESH_CDNS = [
   'https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619',
@@ -119,6 +119,7 @@ export class FaceTracker {
     this.framePromise = null;
     this.engine = new FocusEngine();
     this.blinkDetector = new BlinkDetector();
+    this.eyeSignalGate = new EyeSignalGate();
     this.running = false;
     this.processing = false;
     this.animationFrame = 0;
@@ -213,6 +214,7 @@ export class FaceTracker {
       this.frameCounter = 0;
       this.fpsStartedAt = performance.now();
       this.blinkDetector.reset();
+      this.eyeSignalGate.reset();
       this.lastValidFrameAt = 0;
       this.engine.start();
       this.onStatus?.({ status: 'running' });
@@ -289,12 +291,22 @@ export class FaceTracker {
     if (!landmarks) {
       this.engine.lastSampleAt = performance.now() - this.pausedMs;
       this.blinkDetector.isBlinking = false;
+      this.eyeSignalGate.reset();
       this.onStatus?.({ status: 'no-face' });
       return;
     }
 
     const now = performance.now() - this.pausedMs;
     const ear = Math.max(calculateEAR(landmarks, this.video.videoWidth, this.video.videoHeight), 1e-6);
+    const usableThreshold = this.engine.calibrationMs < 30_000
+      ? 0.16
+      : Math.min(0.22, Math.max(0.16, this.engine.baseline.ear * 0.68));
+    if (!this.eyeSignalGate.update(ear, now, usableThreshold)) {
+      this.engine.lastSampleAt = now;
+      this.blinkDetector.isBlinking = false;
+      this.onStatus?.({ status: 'no-face' });
+      return;
+    }
     // 追踪中断不能被计为一次长眨眼（沿用 legacy/backend/blink.py 的事件边界）。
     if (this.lastValidFrameAt && now - this.lastValidFrameAt > 500) {
       this.blinkDetector.isBlinking = false;

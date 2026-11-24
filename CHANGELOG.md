@@ -1,6 +1,41 @@
 # LearnFit Development Journal
 
+## Daily update log
+
+- **October 23, 2026:** Added Korean and Spanish product modes across Settings, the website, Chrome extension, tutorial, session interface, reports, feedback, privacy explanations, and research dashboard, with local persistence and browser-language detection.
+- **October 5, 2026:** Turned Settings into a local preference center, added persistent Quiet/Detailed study views, camera-preview and check-in controls, an honest timer-only mode, report-first summaries, and peer-reviewed evidence links.
+- **October 4, 2026:** Elevated on-device camera processing into a prominent UI promise, expanded Settings with privacy and control details, and rebuilt How it works to explain blink frequency, completed-blink duration, EAR, smoothing, scoring weights, and scientific limitations.
+- **October 4, 2026:** Added green, amber, coral, and gray meaning to every focus trace, a plain-language focus interpretation, and session-specific recommendations based on score, first sustained shift, tracking coverage, no-signal time, and session length.
+- **October 4, 2026:** Flattened the on-device camera privacy banner and expanded reports with concrete study actions: define one outcome, remove unrelated tabs, use active recall, and take a short screen break when the measured pattern shifts.
+- **September 30, 2026:** Expanded every Build log chapter with a dedicated technical implementation section covering the algorithms, browser APIs, extension architecture, privacy boundaries, and Cloudflare data path.
+- **September 30, 2026:** Rebuilt the public Build log as an expandable growth timeline; every stage now records the problem, implementation decision, and lesson learned in English and Chinese.
+- **September 30, 2026:** Clarified that learners study naturally instead of staring at the camera; unavailable eye signals now become data gaps rather than low scores.
+- **September 30, 2026:** Made the first study tab automatic, kept same-tab navigation verified, and let tabs opened directly from a verified study tab inherit that status.
+- **September 30, 2026:** Added session time, valid observation time, no-signal time, and coverage to downloadable reports without changing the CSV schema.
+- **September 30, 2026:** Added bilingual research charts and data-completeness labels while retaining all historical feedback in totals and distributions.
+- **September 26, 2026:** Kept the website session clock running across tab and window changes while excluding unobserved time from the focus estimate.
+- **September 25, 2026:** Added the four-step tutorial, optional feedback survey, verified study context, and the 60% tracking-coverage requirement.
+- **September 20, 2026:** Published the Cloudflare Pages website and added anonymous usage totals plus the private research dashboard.
+- **September 19, 2026:** Added Chrome background tracking for user-started study sessions across browser tabs.
+- **September 18, 2026:** Reframed the score as an experimental estimate, preserved tracking gaps, and removed unsupported pupil-size claims.
+- **August 7, 2026:** Rebuilt the Python prototype as browser-native MediaPipe JavaScript and a Chrome extension with on-device processing.
+- **July 12, 2026:** Added a blink state machine, 30-second personal baseline, and time smoothing instead of single-frame thresholds.
+- **July 5, 2026:** Connected MediaPipe landmarks, EAR, blink detection, WebSocket output, and the first live focus dashboard.
+- **March–June 2026:** Defined the project goal of helping learners discover a personal rhythm instead of prescribing one universal timer.
+
 This is the story of why I built LearnFit, what failed in each version, and how those failures changed the product. Dates from July onward are supported by the repository history. The March–June entry comes from my early design and experiment notes, before I had a complete project on GitHub.
+
+## September 25, 2026 — Explaining the product, then questioning its assumptions
+
+A tester found the extension’s page-confirmation feature useful but difficult to understand. I added a four-step English tutorial to the website and extension: choose a task, set up the camera, understand page changes, and read the results. It appears on first use, can be skipped, and can be reopened through **How to use**. Tutorial completion stays on the device. The extension’s page buttons now say **I’m studying on this page** or **Confirm this study page**.
+
+The discussion also exposed a limitation in the web design. A learner who switches to a textbook in another tab may still be studying. Losing visibility is evidence that LearnFit cannot observe the same context; it is not evidence that the learner lost focus. I should not describe time the tool cannot verify as proof of disengagement.
+
+**Released in this update:** the tutorial, clearer page-confirmation labels, and a public maker’s statement explaining these limitations. The website offers a no-install introduction to personal baselines, signals, and reflection. The extension offers tracking across user-chosen Chrome study pages. Neither page confirmation nor eye behavior alone proves attention to a task.
+
+**Released September 26:** the web session timer now continues across tab and window changes. Background camera processing can still be interrupted by the browser, so unobserved periods remain unscored and lower tracking coverage. The interface and report now state that the score describes only observed periods and that the website cannot verify activity in another tab.
+
+I kept the earlier negative feedback as part of the development record. It identifies a real design problem and gives me a concrete reason to revise the product, rather than just polish its explanation.
 
 ## The project at a glance
 

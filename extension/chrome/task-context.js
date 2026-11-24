@@ -12,9 +12,24 @@ export function normalizePage(url = '') {
 export function classifyTaskPage(tab, allowedPages = []) {
   const url = normalizePage(tab?.url);
   if (!url) return 'off-task';
+  // One confirmation covers this Chrome tab for the rest of the session.
+  // Navigation inside it should not silently discard verified study time.
+  if (allowedPages.some((page) => page.tabId === tab?.id)) return 'study';
   if (allowedPages.some((page) => page.url === url)) return 'study';
-  if (allowedPages.some((page) => page.tabId === tab?.id)) return 'needs-confirmation';
   return 'off-task';
+}
+
+export function inheritedStudyPage(tab, allowedPages = []) {
+  const url = normalizePage(tab?.url);
+  const openerTabId = Number(tab?.openerTabId);
+  if (!url || !Number.isInteger(openerTabId)) return null;
+  if (!allowedPages.some((page) => page.tabId === openerTabId)) return null;
+  return {
+    tabId: tab.id,
+    url,
+    title: String(tab.title || new URL(url).hostname).slice(0, 160),
+    inheritedFromTabId: openerTabId,
+  };
 }
 
 export function trackingCoverage(session) {

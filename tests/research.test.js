@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateEvent, validateFeedback, validateUsage } from '../pages-function/validation.js';
+import { validateEvent, validateFeedback, validatePartner, validateUsage } from '../pages-function/validation.js';
 import worker, { sameOrigin } from '../pages-function/index.js';
+import { getPartnerCode, PARTNER_CODE_KEY } from '../demo/research.js';
 
 const base = {
   anonymousId: '11111111-1111-4111-8111-111111111111',
@@ -10,14 +11,30 @@ const base = {
 };
 
 test('accepts a minimal anonymous session event', () => {
-  assert.deepEqual(validateEvent({ ...base, eventType: 'completed' }), { ...base, eventType: 'completed' });
+  assert.deepEqual(validateEvent({ ...base, eventType: 'completed' }), { ...base, eventType: 'completed', partnerCode: null });
 });
 
 test('aggregate usage accepts a duration only for completed sessions', () => {
-  assert.deepEqual(validateUsage({ source: 'extension', eventType: 'started', durationSeconds: 125, extra: 'ignored' }), { source: 'extension', eventType: 'started', durationSeconds: 0 });
-  assert.deepEqual(validateUsage({ source: 'web', eventType: 'completed', durationSeconds: 125 }), { source: 'web', eventType: 'completed', durationSeconds: 125 });
+  assert.deepEqual(validateUsage({ source: 'extension', eventType: 'started', durationSeconds: 125, extra: 'ignored' }), { source: 'extension', eventType: 'started', durationSeconds: 0, partnerCode: null });
+  assert.deepEqual(validateUsage({ source: 'web', eventType: 'completed', durationSeconds: 125 }), { source: 'web', eventType: 'completed', durationSeconds: 125, partnerCode: null });
   assert.throws(() => validateUsage({ source: 'unknown', eventType: 'started' }));
   assert.throws(() => validateUsage({ source: 'web', eventType: 'completed', durationSeconds: 86401 }));
+});
+
+test('accepts opaque institution codes without exposing institution names', () => {
+  assert.equal(validateUsage({ source: 'web', eventType: 'started', partnerCode: 'p_a1b2c3d4e5f6' }).partnerCode, 'p_a1b2c3d4e5f6');
+  assert.throws(() => validateUsage({ source: 'web', eventType: 'started', partnerCode: 'Stony-Brook-School' }));
+  assert.deepEqual(validatePartner({ name: '  Local Youth Center  ' }), { name: 'Local Youth Center' });
+  assert.throws(() => validatePartner({ name: 'A' }));
+});
+
+test('an institution invite code persists locally for later anonymous usage events', () => {
+  const values = new Map();
+  const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+  assert.equal(getPartnerCode(storage, '?partner=p_a1b2c3d4e5f6&utm_source=email'), 'p_a1b2c3d4e5f6');
+  assert.equal(values.get(PARTNER_CODE_KEY), 'p_a1b2c3d4e5f6');
+  assert.equal(getPartnerCode(storage, ''), 'p_a1b2c3d4e5f6');
+  assert.equal(getPartnerCode(storage, '?partner=school-name'), 'p_a1b2c3d4e5f6');
 });
 
 test('rejects identifiers and values outside the research schema', () => {

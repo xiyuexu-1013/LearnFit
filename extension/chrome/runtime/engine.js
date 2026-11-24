@@ -27,6 +27,23 @@ function calculateEAR(landmarks, width = 1, height = 1) {
   };
   return (eyeEAR(EYE_LANDMARKS.LEFT) + eyeEAR(EYE_LANDMARKS.RIGHT)) / 2;
 }
+var EyeSignalGate = class {
+  constructor({ maximumLowMs = 650 } = {}) {
+    this.maximumLowMs = maximumLowMs;
+    this.reset();
+  }
+  reset() {
+    this.lowStartedAt = null;
+  }
+  update(ear, now = performance.now(), threshold = 0.16) {
+    if (ear >= threshold) {
+      this.reset();
+      return true;
+    }
+    this.lowStartedAt ??= now;
+    return now - this.lowStartedAt < this.maximumLowMs;
+  }
+};
 var BlinkDetector = class {
   constructor({ earThreshold = 0.22, fatigueDurationMs = 500 } = {}) {
     this.earThreshold = earThreshold;
@@ -165,6 +182,7 @@ var FocusEngine = class {
 export {
   BlinkDetector,
   EYE_LANDMARKS,
+  EyeSignalGate,
   FocusEngine,
   calculateEAR
 };

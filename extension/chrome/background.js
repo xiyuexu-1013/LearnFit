@@ -1,12 +1,12 @@
-import { classifyTaskPage, finalFocusEstimate, normalizePage, trackingCoverage } from './task-context.js';
+import { classifyTaskPage, finalFocusEstimate, inheritedStudyPage, normalizePage, trackingCoverage } from './task-context.js';
 
 const DEFAULT_SESSION = {
   sessionId: null, running: false, phase: 'ready', previousPhase: null,
   score: null, currentScore: null, scoreTotal: 0, scoreSamples: 0,
   status: 'Ready to begin', startedAt: null, optimalDuration: 25,
   calibrationProgress: 0, error: null, contextState: 'off-task',
-  activePage: null, allowedPages: [], verifiedMs: 0, offTaskMs: 0,
-  noSignalMs: 0, validSignalMs: 0, signalAvailable: false, lastAccountedAt: null,
+  activePage: null, pageError: null, allowedPages: [], verifiedMs: 0, offTaskMs: 0,
+  noSignalMs: 0, validSignalMs: 0, signalAvailable: false, lastAccountedAt: null, sessionMode: 'camera',
 };
 
 let creatingOffscreen;
@@ -59,6 +59,10 @@ function account(session, now = Date.now()) {
   }
   const elapsed = Math.max(0, now - session.lastAccountedAt);
   const next = { ...session, lastAccountedAt: now };
+  if (session.sessionMode === 'timer' && session.phase === 'active') {
+    next.verifiedMs += elapsed;
+    return next;
+  }
   if (session.contextState !== 'study') next.offTaskMs += elapsed;
   else if (session.phase === 'active') {
     next.verifiedMs += elapsed;
@@ -76,6 +80,9 @@ async function activeTab() {
 function publicPage(tab) {
   const url = normalizePage(tab?.url);
   if (!url) return null;
+  // LearnFit's own setup and popup pages are controls, not study material.
+  // Other extension URLs remain supported because Chrome PDF viewers use them.
+  if (url.startsWith(chrome.runtime.getURL(''))) return null;
   return { tabId: tab.id, url, title: String(tab.title || new URL(url).hostname).slice(0, 160) };
 }
 
@@ -124,12 +131,20 @@ async function refreshTaskContext() {
   contextUpdate = (async () => {
     let session = await getSession();
     if (!session.running) return session;
+    if (session.sessionMode === 'timer') return saveSession({ ...account(session), status: 'Timer only · no focus score', contextState: 'study' });
     const tab = browserFocused ? await activeTab() : null;
+    const inherited = browserFocused && classifyTaskPage(tab, session.allowedPages) === 'off-task'
+      ? inheritedStudyPage(tab, session.allowedPages) : null;
+    if (inherited) session.allowedPages = session.allowedPages.concat(inherited);
+    const page = publicPage(tab);
     const state = browserFocused ? classifyTaskPage(tab, session.allowedPages) : 'off-task';
     const changed = state !== session.contextState;
     session = account(session);
     session.contextState = state;
-    session.activePage = publicPage(tab);
+    session.activePage = page;
+    session.pageError = browserFocused && tab && !page
+      ? 'This Chrome page cannot be added. Open a webpage, online lesson, or PDF first.'
+      : null;
     session.status = contextStatus(state, session.phase);
     session.signalAvailable = state === 'study' ? session.signalAvailable : false;
     if (changed && await hasOffscreenDocument()) {
@@ -141,13 +156,14 @@ async function refreshTaskContext() {
 }
 
 async function startSession() {
-  const stored = await chrome.storage.local.get('pendingStudyPage');
+  const stored = await chrome.storage.local.get(['pendingStudyPage', 'defaultCheckIn']);
   const pending = stored.pendingStudyPage;
   const initial = pending?.url ? [{ tabId: pending.tabId, url: normalizePage(pending.url), title: pending.title || 'Study page' }] : [];
   await saveSession({
     ...DEFAULT_SESSION, sessionId: crypto.randomUUID(), running: true, phase: 'starting',
     status: 'Starting private tracking…', allowedPages: initial, activePage: pending || null,
     contextState: initial.length ? 'study' : 'off-task', lastAccountedAt: Date.now(),
+    optimalDuration: Number.isFinite(Number(stored.defaultCheckIn)) ? Math.max(5, Math.min(90, Math.round(Number(stored.defaultCheckIn)))) : 25,
   });
   try {
     if (pending?.tabId) await chrome.tabs.update(pending.tabId, { active: true }).catch(() => {});
@@ -160,11 +176,22 @@ async function startSession() {
   }
 }
 
+async function startTimerSession() {
+  const { defaultCheckIn } = await chrome.storage.local.get('defaultCheckIn');
+  const session = await saveSession({
+    ...DEFAULT_SESSION, sessionId: crypto.randomUUID(), running: true, phase: 'active', sessionMode: 'timer',
+    status: 'Timer only · no focus score', contextState: 'study', lastAccountedAt: Date.now(), startedAt: Date.now(),
+    optimalDuration: Number.isFinite(Number(defaultCheckIn)) ? Math.max(5, Math.min(90, Math.round(Number(defaultCheckIn)))) : 25,
+  });
+  await postAggregateUsage('started').catch(() => {});
+  return session;
+}
+
 async function pauseSession() {
   let session = await getSession();
   if (!session.running || session.phase === 'paused') return session;
   session = account(session);
-  await sendToTracker('LEARNFIT_TRACKER_PAUSE');
+  if (session.sessionMode === 'camera') await sendToTracker('LEARNFIT_TRACKER_PAUSE');
   return saveSession({ ...session, phase: 'paused', previousPhase: session.phase, status: 'Paused', signalAvailable: false });
 }
 
@@ -173,16 +200,23 @@ async function resumeSession() {
   if (!session.running || session.phase !== 'paused') return session;
   const phase = session.previousPhase === 'calibrating' ? 'calibrating' : 'active';
   session = { ...session, phase, previousPhase: null, lastAccountedAt: Date.now() };
-  if (session.contextState === 'study') await sendToTracker('LEARNFIT_TRACKER_RESUME');
-  return saveSession({ ...session, status: contextStatus(session.contextState, phase) });
+  if (session.sessionMode === 'camera' && session.contextState === 'study') await sendToTracker('LEARNFIT_TRACKER_RESUME');
+  return saveSession({ ...session, status: session.sessionMode === 'timer' ? 'Timer only · no focus score' : contextStatus(session.contextState, phase) });
 }
 
 async function allowCurrentPage() {
   let session = account(await getSession());
   const page = publicPage(await activeTab());
-  if (!session.running || !page) return session;
+  if (!session.running) return session;
+  if (!page) {
+    return saveSession({
+      ...session,
+      activePage: null,
+      pageError: 'This Chrome page cannot be added. Open a webpage, online lesson, or PDF first.',
+    });
+  }
   const allowedPages = session.allowedPages.filter((item) => item.tabId !== page.tabId && item.url !== page.url).concat(page);
-  session = { ...session, allowedPages, activePage: page, contextState: 'study', status: contextStatus('study', session.phase), lastAccountedAt: Date.now() };
+  session = { ...session, allowedPages, activePage: page, pageError: null, contextState: 'study', status: contextStatus('study', session.phase), lastAccountedAt: Date.now() };
   if (session.phase !== 'paused') await sendToTracker('LEARNFIT_TRACKER_RESUME').catch(() => {});
   return saveSession(session);
 }
@@ -191,18 +225,18 @@ async function stopSession() {
   let session = await getSession();
   if (!session.running) return session;
   session = account(session);
-  const score = finalFocusEstimate(session);
+  const score = session.sessionMode === 'timer' ? null : finalFocusEstimate(session);
   const completed = await saveSession({
     ...session, running: false, phase: 'complete', previousPhase: null, score,
     currentScore: null, signalAvailable: false, lastAccountedAt: null,
-    status: score === null ? 'Not enough tracking data' : 'Session complete',
+    status: session.sessionMode === 'timer' ? 'Timer-only session complete' : score === null ? 'Not enough tracking data' : 'Session complete',
   });
   if (await hasOffscreenDocument()) {
     await chrome.runtime.sendMessage({ type: 'LEARNFIT_TRACKER_STOP', target: 'offscreen' }).catch(() => {});
     await chrome.offscreen.closeDocument().catch(() => {});
   }
   await postAggregateUsage('completed', Math.max(0, Math.round(completed.verifiedMs / 1000))).catch(() => {});
-  await openFeedback(completed).catch(() => {});
+  if (completed.sessionMode !== 'timer') await openFeedback(completed).catch(() => {});
   return completed;
 }
 
@@ -231,6 +265,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ ok: true, tabId: setup.id });
     }
     if (message.type === 'LEARNFIT_START') sendResponse(await startSession());
+    if (message.type === 'LEARNFIT_START_TIMER') sendResponse(await startTimerSession());
     if (message.type === 'LEARNFIT_PAUSE') sendResponse(await pauseSession());
     if (message.type === 'LEARNFIT_RESUME') sendResponse(await resumeSession());
     if (message.type === 'LEARNFIT_ALLOW_CURRENT_PAGE') sendResponse(await allowCurrentPage());

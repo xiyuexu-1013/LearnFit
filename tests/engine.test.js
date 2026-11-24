@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FocusEngine, BlinkDetector, calculateEAR, EYE_LANDMARKS } from '../src/core/engine.js';
+import { FocusEngine, BlinkDetector, calculateEAR, EYE_LANDMARKS, EyeSignalGate } from '../src/core/engine.js';
 import { summarize } from '../demo/session.js';
 
 function calibrate(engine, ear = .3) {
@@ -8,6 +8,16 @@ function calibrate(engine, ear = .3) {
   for (let t = 100; t <= 30000; t += 100) engine.calculate({ blinkFrequency: 10, blinkDuration: 200, ear, blinkCompleted: t % 6000 === 0 }, t);
   return engine.calculate({ blinkFrequency: 10, blinkDuration: 200, ear }, 30100);
 }
+
+test('normal blink stays valid while sustained compressed eyes become no signal', () => {
+  const gate = new EyeSignalGate({ maximumLowMs: 650 });
+  assert.equal(gate.update(.1, 1000, .16), true);
+  assert.equal(gate.update(.1, 1250, .16), true);
+  assert.equal(gate.update(.3, 1300, .16), true);
+  assert.equal(gate.update(.1, 2000, .16), true);
+  assert.equal(gate.update(.1, 2700, .16), false);
+  assert.equal(gate.update(.3, 2800, .16), true);
+});
 
 test('baseline uses completed blinks and 30 seconds of observations', () => {
   const engine = new FocusEngine();

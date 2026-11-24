@@ -1,3 +1,5 @@
+import { mountLanguage } from './runtime/language.js';
+mountLanguage({ extension: true });
 const button = document.querySelector('#allow');
 const status = document.querySelector('#status');
 const video = document.querySelector('#preview');
